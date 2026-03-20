@@ -1,0 +1,18 @@
+{
+  "name": "nansen-query-planner",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.3.11",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "thesis-battlefield": "bun run apps/thesis-battlefield/src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.3"
+  }
+}
