@@ -60,6 +60,13 @@ export type StructuredReport = {
   evidence: Evidence[]
   queryTrace: string[]
   nextQuestions: string[]
+  strongestBullEvidence: Evidence | null
+  strongestBearEvidence: Evidence | null
+  caveats: string[]
+  agentSummary: {
+    strongestBullCase: string
+    strongestBearCase: string
+  }
 }
 
 export type PlannerRun = {
