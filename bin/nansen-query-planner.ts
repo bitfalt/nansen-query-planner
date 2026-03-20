@@ -1,7 +1,13 @@
 #!/usr/bin/env bun
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { buildWeekOnePlan, buildMarkdownReport, buildStructuredReport, executePlan, type PlannerRun } from '../src/index'
+import {
+  buildWeekOnePlan,
+  buildMarkdownReport,
+  buildStructuredReport,
+  executePlan,
+  type PlannerRun,
+} from '../src/index'
 
 function getArg(flag: string, fallback?: string) {
   const idx = process.argv.indexOf(flag)
@@ -21,7 +27,10 @@ mkdirSync(runDir, { recursive: true })
 let run: PlannerRun = {
   runId,
   input: { token, thesis, chain, mode, maxCalls: maxCallsArg },
-  steps: buildWeekOnePlan({ token, thesis, chain, mode }).slice(0, Number.isFinite(maxCallsArg) ? maxCallsArg : 10),
+  steps: buildWeekOnePlan({ token, thesis, chain, mode, maxCalls: maxCallsArg }).slice(
+    0,
+    Number.isFinite(maxCallsArg) ? maxCallsArg : 10,
+  ),
   evidence: [],
   executed: false,
 }
@@ -37,12 +46,18 @@ const jsonPath = join(runDir, 'report.json')
 writeFileSync(reportPath, report)
 writeFileSync(jsonPath, JSON.stringify(structured, null, 2))
 
-console.log(JSON.stringify({
-  success: true,
-  runId,
-  mode,
-  steps: run.steps.length,
-  executed: run.executed,
-  reportPath,
-  jsonPath,
-}, null, 2))
+console.log(
+  JSON.stringify(
+    {
+      success: true,
+      runId,
+      mode,
+      steps: run.steps.length,
+      executed: run.executed,
+      reportPath,
+      jsonPath,
+    },
+    null,
+    2,
+  ),
+)

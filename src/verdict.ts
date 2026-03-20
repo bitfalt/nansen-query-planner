@@ -1,33 +1,39 @@
 import type { Evidence, Verdict } from './types'
 
 export function buildVerdict(evidence: Evidence[], executed: boolean): Verdict {
-  const bull = evidence.filter((e) => e.stance === 'bull').length
-  const bear = evidence.filter((e) => e.stance === 'bear').length
-  const neutral = evidence.filter((e) => e.stance === 'neutral').length
+  const bull = evidence.filter((e) => e.stance === 'bull')
+  const bear = evidence.filter((e) => e.stance === 'bear')
+  const neutral = evidence.filter((e) => e.stance === 'neutral')
+
+  const bullSignal = bull.reduce((sum, e) => sum + e.signalStrength, 0)
+  const bearSignal = bear.reduce((sum, e) => sum + e.signalStrength, 0)
+  const delta = bullSignal - bearSignal
+  const absDelta = Math.abs(delta)
+  const confidence: Verdict['confidence'] = absDelta >= 3 ? 'high' : absDelta >= 1 ? 'medium' : 'low'
 
   if (!executed || evidence.length === 0) {
     return {
       decision: 'INCONCLUSIVE',
       confidence: 'low',
-      bullEvidenceCount: bull,
-      bearEvidenceCount: bear,
-      neutralEvidenceCount: neutral,
-      explanation: 'The run did not collect enough live evidence yet. The query plan is ready, but the thesis still needs executed evidence to support a stronger verdict.',
+      bullEvidenceCount: bull.length,
+      bearEvidenceCount: bear.length,
+      neutralEvidenceCount: neutral.length,
+      bullSignal,
+      bearSignal,
+      explanation: 'The query plan exists, but there is not enough executed evidence yet to support a real directional verdict.',
     }
   }
-
-  const delta = bull - bear
-  const absDelta = Math.abs(delta)
-  const confidence: Verdict['confidence'] = absDelta >= 3 ? 'high' : absDelta >= 1 ? 'medium' : 'low'
 
   if (delta >= 2) {
     return {
       decision: 'BULLISH',
       confidence,
-      bullEvidenceCount: bull,
-      bearEvidenceCount: bear,
-      neutralEvidenceCount: neutral,
-      explanation: 'Supportive evidence currently outweighs contradictory evidence across the executed query set.',
+      bullEvidenceCount: bull.length,
+      bearEvidenceCount: bear.length,
+      neutralEvidenceCount: neutral.length,
+      bullSignal,
+      bearSignal,
+      explanation: 'Supportive evidence currently outweighs contradictory evidence across the executed investigation set.',
     }
   }
 
@@ -35,19 +41,23 @@ export function buildVerdict(evidence: Evidence[], executed: boolean): Verdict {
     return {
       decision: 'BEARISH',
       confidence,
-      bullEvidenceCount: bull,
-      bearEvidenceCount: bear,
-      neutralEvidenceCount: neutral,
-      explanation: 'Contradictory evidence currently outweighs supportive evidence across the executed query set.',
+      bullEvidenceCount: bull.length,
+      bearEvidenceCount: bear.length,
+      neutralEvidenceCount: neutral.length,
+      bullSignal,
+      bearSignal,
+      explanation: 'Contradictory evidence currently outweighs supportive evidence across the executed investigation set.',
     }
   }
 
   return {
     decision: 'MIXED',
     confidence,
-    bullEvidenceCount: bull,
-    bearEvidenceCount: bear,
-    neutralEvidenceCount: neutral,
-    explanation: 'The evidence currently points in multiple directions. More focused investigation is needed before making a strong directional claim.',
+    bullEvidenceCount: bull.length,
+    bearEvidenceCount: bear.length,
+    neutralEvidenceCount: neutral.length,
+    bullSignal,
+    bearSignal,
+    explanation: 'The evidence currently points in multiple directions. The thesis needs more focused follow-up before a strong directional claim can be made.',
   }
 }

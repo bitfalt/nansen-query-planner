@@ -20,6 +20,8 @@ export type Evidence = {
   stepId: string
   summary: string
   stance: 'bull' | 'bear' | 'neutral'
+  signalStrength: number
+  metrics?: Record<string, string | number | boolean>
   rawOutputPath?: string
 }
 
@@ -29,6 +31,8 @@ export type Verdict = {
   bullEvidenceCount: number
   bearEvidenceCount: number
   neutralEvidenceCount: number
+  bullSignal: number
+  bearSignal: number
   explanation: string
 }
 
@@ -42,6 +46,16 @@ export type StructuredReport = {
   mode: 'plan' | 'execute'
   executed: boolean
   verdict: Verdict
+  plannerSummary: {
+    totalQueries: number
+    executedQueries: number
+    categories: string[]
+  }
+  llmSummary: {
+    oneSentence: string
+    analystTake: string
+    nextAction: string
+  }
   plannedQueries: QueryStep[]
   evidence: Evidence[]
   queryTrace: string[]
@@ -54,4 +68,11 @@ export type PlannerRun = {
   steps: QueryStep[]
   evidence: Evidence[]
   executed: boolean
+}
+
+export type CommandResult = {
+  success: boolean
+  stdout: string
+  stderr: string
+  exitCode: number | null
 }

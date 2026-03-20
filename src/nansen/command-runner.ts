@@ -1,11 +1,5 @@
 import { spawnSync } from 'node:child_process'
-
-export type CommandResult = {
-  success: boolean
-  stdout: string
-  stderr: string
-  exitCode: number | null
-}
+import type { CommandResult } from '../types'
 
 export function runNansenCommand(args: string[]): CommandResult {
   const result = spawnSync('nansen', args, { encoding: 'utf-8' })

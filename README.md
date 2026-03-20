@@ -16,9 +16,12 @@ Current intended consumer:
 - generate both human-readable and agent-consumable reports
 
 ## Report surfaces
-The planner now emits:
+The planner emits:
 - `report.md` for humans
 - `report.json` for agents / LLMs / downstream automation
+
+## Current limitation
+The planner now produces a better structured report, but live evidence parsing is still heuristic. It still needs stronger command-family-specific extraction to become Week 1 demo complete.
 
 ## Development
 ```bash
