@@ -11,5 +11,5 @@
     "types": ["node"],
     "baseUrl": "."
   },
-  "include": ["apps/**/*.ts", "packages/**/*.ts"]
+  "include": ["src/**/*.ts", "bin/**/*.ts"]
 }

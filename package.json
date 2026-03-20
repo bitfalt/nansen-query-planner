@@ -1,15 +1,19 @@
 {
-  "name": "nansen-query-planner",
-  "private": true,
+  "name": "@bitfalt/nansen-query-planner",
+  "version": "0.1.0",
+  "private": false,
   "type": "module",
   "packageManager": "bun@1.3.11",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "description": "Cost-aware planning and execution layer for Nansen CLI investigations",
+  "bin": {
+    "nansen-query-planner": "./bin/nansen-query-planner.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
-    "thesis-battlefield": "bun run apps/thesis-battlefield/src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "planner:demo": "bun run bin/nansen-query-planner.ts --token HYPE --thesis \"Smart money is accumulating HYPE\" --mode plan"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

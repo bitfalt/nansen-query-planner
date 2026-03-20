@@ -1,6 +1,7 @@
+#!/usr/bin/env bun
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { buildWeekOnePlan, buildMarkdownReport, executePlan, type PlannerRun } from '../../../packages/query-planner/src/index'
+import { buildWeekOnePlan, buildMarkdownReport, executePlan, type PlannerRun } from '../src/index'
 
 function getArg(flag: string, fallback?: string) {
   const idx = process.argv.indexOf(flag)
@@ -19,7 +20,7 @@ mkdirSync(runDir, { recursive: true })
 
 let run: PlannerRun = {
   runId,
-  input: { token, thesis, chain, mode },
+  input: { token, thesis, chain, mode, maxCalls: maxCallsArg },
   steps: buildWeekOnePlan({ token, thesis, chain, mode }).slice(0, Number.isFinite(maxCallsArg) ? maxCallsArg : 10),
   evidence: [],
   executed: false,
