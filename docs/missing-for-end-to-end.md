@@ -12,11 +12,12 @@
 - token resolution from search results into downstream token commands
 
 ## Still missing
-1. Better live evidence extraction from Nansen CLI outputs into richer structured evidence
-2. Stronger verdict logic grounded in parsed metrics, not only signal heuristics
+1. Better live evidence extraction from additional Nansen CLI command families beyond q1/q2
+2. Stronger verdict logic grounded in more parsed metrics across multiple query families
 3. Final polished demo script and presentation flow
 4. Submission-ready screenshots / artifacts / X post packaging
 5. Optional lightweight user-facing interface beyond CLI output
+6. Explicit budget policy for how many live calls Thesis Battlefield is allowed to spend per run
 
 ## Important constraint
 Credits are scarce right now, so execute-mode validation must stay bounded and intentional.
