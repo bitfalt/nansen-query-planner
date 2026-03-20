@@ -2,25 +2,22 @@
 
 Reusable planning and execution layer for Nansen CLI investigations.
 
-Purpose:
-- turn a thesis or claim into a cost-aware Nansen investigation plan
-- support visible query traces
-- produce evidence-backed reports
-- power multiple app shells without duplicating the core engine
+This repository is the shared foundation package.
+It is not the Week 1 product shell itself.
 
-## What this repo is
-This repo is the shared foundation package.
-It is not the Week 1 submission repo by itself.
+Current intended consumer:
+- `nansen-thesis-battlefield` (Week 1 app shell)
 
-## Current intended consumer
-- Week 1 app: Nansen Thesis Battlefield
+## Core responsibilities
+- parse a thesis/question into an investigation plan
+- choose an ordered query path
+- execute bounded Nansen CLI calls
+- normalize evidence
+- generate a reusable report surface
 
-## Why this split exists
-The shared asset is the planner, not the weekly wrappers.
-This repo should stay reusable and importable.
-
-## Commands
+## Development
 ```bash
 bun install
 bun run planner:demo
+bun run typecheck
 ```

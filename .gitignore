@@ -1,6 +1,6 @@
 node_modules
 bun.lock
-dist
 .env
 outputs/runs/*
 !outputs/runs/.gitkeep
+dist

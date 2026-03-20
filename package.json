@@ -9,7 +9,9 @@
     "nansen-query-planner": "./bin/nansen-query-planner.ts"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./runner": "./src/runner/execute-plan.ts",
+    "./nansen": "./src/nansen/command-runner.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
