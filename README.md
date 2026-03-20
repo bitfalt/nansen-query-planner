@@ -9,11 +9,15 @@ Current intended consumer:
 - `nansen-thesis-battlefield` (Week 1 app shell)
 
 ## Core responsibilities
-- parse a thesis/question into an investigation plan
-- choose an ordered query path
+- parse a thesis or question into an investigation plan
+- choose an ordered query path under a bounded budget
 - execute bounded Nansen CLI calls
 - normalize evidence
-- generate a reusable report surface
+- generate reusable reports and query traces
+
+## Design rule
+Keep this repo reusable.
+Do not let week-specific UI or demo-shell concerns pollute the package.
 
 ## Development
 ```bash

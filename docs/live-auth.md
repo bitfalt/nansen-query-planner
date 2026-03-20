@@ -3,8 +3,7 @@
 Secrets must never be committed.
 
 Recommended local-only setup:
-- export NANSEN_API_KEY from a secure shell source
+- export `NANSEN_API_KEY` from a secure shell source
 - or load it from a local ignored `.env`
 
-Current secure local secret location used by Hermes:
-- `~/.hermes/secrets/nansen-api-key.txt`
+Do not document or commit personal machine-specific secret storage paths in the public repo.
