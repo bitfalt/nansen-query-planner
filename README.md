@@ -13,11 +13,12 @@ Current intended consumer:
 - choose an ordered query path under a bounded budget
 - execute bounded Nansen CLI calls
 - normalize evidence
-- generate reusable reports and query traces
+- generate both human-readable and agent-consumable reports
 
-## Design rule
-Keep this repo reusable.
-Do not let week-specific UI or demo-shell concerns pollute the package.
+## Report surfaces
+The planner now emits:
+- `report.md` for humans
+- `report.json` for agents / LLMs / downstream automation
 
 ## Development
 ```bash

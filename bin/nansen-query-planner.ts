@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { buildWeekOnePlan, buildMarkdownReport, executePlan, type PlannerRun } from '../src/index'
+import { buildWeekOnePlan, buildMarkdownReport, buildStructuredReport, executePlan, type PlannerRun } from '../src/index'
 
 function getArg(flag: string, fallback?: string) {
   const idx = process.argv.indexOf(flag)
@@ -31,8 +31,11 @@ if (mode === 'execute') {
 }
 
 const report = buildMarkdownReport(run)
+const structured = buildStructuredReport(run)
 const reportPath = join(runDir, 'report.md')
+const jsonPath = join(runDir, 'report.json')
 writeFileSync(reportPath, report)
+writeFileSync(jsonPath, JSON.stringify(structured, null, 2))
 
 console.log(JSON.stringify({
   success: true,
@@ -41,4 +44,5 @@ console.log(JSON.stringify({
   steps: run.steps.length,
   executed: run.executed,
   reportPath,
+  jsonPath,
 }, null, 2))
