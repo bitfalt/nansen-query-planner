@@ -38,10 +38,11 @@ export function executePlan(run: PlannerRun, outputDir: string): PlannerRun {
 
     const ev = buildEvidenceFromCommand(step, result, outPath)
     if (resolvedTokenRef && step.id === 'q1') {
-      ev.summary += ` Resolved token reference for ${run.input.chain}: ${resolvedTokenRef}.`
+      ev.summary += ` Selected ${run.input.chain} token reference: ${resolvedTokenRef}.`
       ev.metrics = {
         ...(ev.metrics || {}),
         resolvedTokenRef,
+        selectedChain: run.input.chain,
       }
     }
     evidence.push(ev)

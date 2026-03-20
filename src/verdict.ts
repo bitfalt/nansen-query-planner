@@ -1,12 +1,31 @@
 import type { Evidence, Verdict } from './types'
 
+function getMetricNumber(evidence: Evidence, key: string) {
+  const value = evidence.metrics?.[key]
+  return typeof value === 'number' ? value : 0
+}
+
 export function buildVerdict(evidence: Evidence[], executed: boolean): Verdict {
   const bull = evidence.filter((e) => e.stance === 'bull')
   const bear = evidence.filter((e) => e.stance === 'bear')
   const neutral = evidence.filter((e) => e.stance === 'neutral')
 
-  const bullSignal = bull.reduce((sum, e) => sum + e.signalStrength, 0)
-  const bearSignal = bear.reduce((sum, e) => sum + e.signalStrength, 0)
+  let bullSignal = bull.reduce((sum, e) => sum + e.signalStrength, 0)
+  let bearSignal = bear.reduce((sum, e) => sum + e.signalStrength, 0)
+
+  const tokenInfo = evidence.find((e) => e.stepId === 'q2')
+  if (tokenInfo) {
+    const buyPressure = getMetricNumber(tokenInfo, 'buyPressureUsd')
+    const buyerBalance = getMetricNumber(tokenInfo, 'buyerBalance')
+    const liquidity = getMetricNumber(tokenInfo, 'liquidityUsd')
+
+    if (buyPressure > 0) bullSignal += 1
+    if (buyPressure < 0) bearSignal += 1
+    if (buyerBalance > 0) bullSignal += 0.5
+    if (buyerBalance < 0) bearSignal += 0.5
+    if (liquidity > 1_000_000) bullSignal += 0.5
+  }
+
   const delta = bullSignal - bearSignal
   const absDelta = Math.abs(delta)
   const confidence: Verdict['confidence'] = absDelta >= 3 ? 'high' : absDelta >= 1 ? 'medium' : 'low'
@@ -20,7 +39,8 @@ export function buildVerdict(evidence: Evidence[], executed: boolean): Verdict {
       neutralEvidenceCount: neutral.length,
       bullSignal,
       bearSignal,
-      explanation: 'The query plan exists, but there is not enough executed evidence yet to support a real directional verdict.',
+      explanation:
+        'The query plan exists, but there is not enough executed evidence yet to support a real directional verdict.',
     }
   }
 
@@ -33,7 +53,8 @@ export function buildVerdict(evidence: Evidence[], executed: boolean): Verdict {
       neutralEvidenceCount: neutral.length,
       bullSignal,
       bearSignal,
-      explanation: 'Supportive evidence currently outweighs contradictory evidence across the executed investigation set.',
+      explanation:
+        'Supportive evidence currently outweighs contradictory evidence across the executed investigation set, with positive buy-side pressure in the current token-info snapshot.',
     }
   }
 
@@ -46,7 +67,8 @@ export function buildVerdict(evidence: Evidence[], executed: boolean): Verdict {
       neutralEvidenceCount: neutral.length,
       bullSignal,
       bearSignal,
-      explanation: 'Contradictory evidence currently outweighs supportive evidence across the executed investigation set.',
+      explanation:
+        'Contradictory evidence currently outweighs supportive evidence across the executed investigation set, suggesting the thesis is currently weakening rather than strengthening.',
     }
   }
 
@@ -58,6 +80,7 @@ export function buildVerdict(evidence: Evidence[], executed: boolean): Verdict {
     neutralEvidenceCount: neutral.length,
     bullSignal,
     bearSignal,
-    explanation: 'The evidence currently points in multiple directions. The thesis needs more focused follow-up before a strong directional claim can be made.',
+    explanation:
+      'The evidence currently points in multiple directions. The thesis needs more focused follow-up before a strong directional claim can be made.',
   }
 }

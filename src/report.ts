@@ -1,10 +1,41 @@
-import type { PlannerRun, StructuredReport } from './types'
+import type { PlannerRun, StructuredReport, Evidence } from './types'
 import { buildVerdict } from './verdict'
 
-export function buildStructuredReport(run: PlannerRun): StructuredReport {
+function pickStrongest(evidence: Evidence[], stance: 'bull' | 'bear') {
+  return (
+    evidence
+      .filter((e) => e.stance === stance)
+      .sort((a, b) => b.signalStrength - a.signalStrength)[0] ?? null
+  )
+}
+
+function buildCaveats(run: PlannerRun) {
+  const caveats: string[] = []
+  if (!run.executed) {
+    caveats.push('The report is based on planning mode only; live evidence has not been collected yet.')
+  }
+  if (run.evidence.some((e) => e.metrics?.success === false)) {
+    caveats.push('At least one query failed or returned an unusable response during execution.')
+  }
+  if (run.evidence.length < 3) {
+    caveats.push('Only a small subset of the planned investigation has been executed so far.')
+  }
+  return caveats
+}
+
+export function buildStructuredReport(
+  run: PlannerRun,
+): StructuredReport & {
+  strongestBullEvidence: Evidence | null
+  strongestBearEvidence: Evidence | null
+  caveats: string[]
+} {
   const verdict = buildVerdict(run.evidence, run.executed)
   const executedQueries = run.evidence.length
   const categories = [...new Set(run.steps.map((s) => s.category))] as string[]
+  const strongestBullEvidence = pickStrongest(run.evidence, 'bull')
+  const strongestBearEvidence = pickStrongest(run.evidence, 'bear')
+  const caveats = buildCaveats(run)
 
   return {
     reportType: 'thesis-battlefield.v1',
@@ -37,6 +68,9 @@ export function buildStructuredReport(run: PlannerRun): StructuredReport {
       'Should we spend more credits on profiler follow-ups or stop here?',
       'What additional evidence would change the verdict materially?',
     ],
+    strongestBullEvidence,
+    strongestBearEvidence,
+    caveats,
   }
 }
 
@@ -73,6 +107,15 @@ ${report.executed ? 'yes' : 'no'}
 - One sentence: ${report.llmSummary.oneSentence}
 - Analyst take: ${report.llmSummary.analystTake}
 - Next action: ${report.llmSummary.nextAction}
+
+## Strongest Bull Evidence
+${report.strongestBullEvidence ? `- ${report.strongestBullEvidence.summary}` : '- None yet'}
+
+## Strongest Bear Evidence
+${report.strongestBearEvidence ? `- ${report.strongestBearEvidence.summary}` : '- None yet'}
+
+## Caveats
+${report.caveats.map((c) => `- ${c}`).join('\n') || '- None'}
 
 ## Planned Queries
 ${report.plannedQueries
