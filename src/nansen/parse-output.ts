@@ -64,6 +64,22 @@ function formatUsd(value: number | undefined) {
   return `$${Math.round(value).toLocaleString('en-US')}`
 }
 
+function collectNumbers(value: unknown, out: Record<string, number>, prefix = '') {
+  if (Array.isArray(value)) {
+    value.forEach((item, idx) => collectNumbers(item, out, `${prefix}${prefix ? '.' : ''}${idx}`))
+    return
+  }
+  if (value && typeof value === 'object') {
+    for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
+      collectNumbers(v, out, `${prefix}${prefix ? '.' : ''}${key}`)
+    }
+    return
+  }
+  if (typeof value === 'number') {
+    out[prefix] = value
+  }
+}
+
 function parseSearchEvidence(step: QueryStep, stdout: string, rawOutputPath: string): Evidence {
   const parsed = tryParseJson<SearchResponse>(stdout.trim())
   const tokens = parsed?.data?.tokens ?? []
@@ -165,6 +181,71 @@ function parseTokenInfoEvidence(step: QueryStep, stdout: string, rawOutputPath: 
   }
 }
 
+function parseGenericMetricEvidence(step: QueryStep, stdout: string, rawOutputPath: string): Evidence {
+  const parsed = tryParseJson<Record<string, unknown>>(stdout.trim())
+  const data = parsed && typeof parsed === 'object' ? (parsed as any).data : null
+  const numbers: Record<string, number> = {}
+  collectNumbers(data, numbers)
+
+  const entries = Object.entries(numbers)
+  const lowerKeys = entries.map(([k]) => k.toLowerCase())
+  const netflowEntry = entries.find(([k]) => k.toLowerCase().includes('net_flow'))
+  const inflowEntry = entries.find(([k]) => k.toLowerCase().includes('inflow'))
+  const outflowEntry = entries.find(([k]) => k.toLowerCase().includes('outflow'))
+  const scoreEntry = entries.find(([k]) => k.toLowerCase().includes('score'))
+
+  let stance: Evidence['stance'] = step.expectedSignal === 'supportive' ? 'bull' : step.expectedSignal === 'contradictory' ? 'bear' : 'neutral'
+  let signalStrength = step.expectedSignal === 'contextual' ? 0.75 : 1
+
+  if (netflowEntry) {
+    if (netflowEntry[1] > 0) {
+      stance = 'bull'
+      signalStrength = 1.25
+    } else if (netflowEntry[1] < 0) {
+      stance = 'bear'
+      signalStrength = 1.25
+    }
+  } else if (inflowEntry && outflowEntry) {
+    if (inflowEntry[1] > outflowEntry[1]) {
+      stance = 'bull'
+      signalStrength = 1.25
+    } else if (inflowEntry[1] < outflowEntry[1]) {
+      stance = 'bear'
+      signalStrength = 1.25
+    }
+  } else if (scoreEntry) {
+    if (scoreEntry[1] >= 60) {
+      stance = 'bull'
+      signalStrength = 1.0
+    } else if (scoreEntry[1] <= 40) {
+      stance = 'bear'
+      signalStrength = 1.0
+    }
+  }
+
+  const topKeys = lowerKeys.slice(0, 5).join(', ')
+  const summary = entries.length
+    ? `${step.label} returned structured metrics. Key metric hints: ${topKeys || 'available metrics detected'}.`
+    : `${step.label} returned structured data but no obvious numeric metrics were extracted.`
+
+  return {
+    id: `ev_${step.id}`,
+    stepId: step.id,
+    summary,
+    stance,
+    signalStrength,
+    metrics: {
+      success: true,
+      extractedMetricCount: entries.length,
+      ...(netflowEntry ? { netFlow: netflowEntry[1] } : {}),
+      ...(inflowEntry ? { inflow: inflowEntry[1] } : {}),
+      ...(outflowEntry ? { outflow: outflowEntry[1] } : {}),
+      ...(scoreEntry ? { score: scoreEntry[1] } : {}),
+    },
+    rawOutputPath,
+  }
+}
+
 export function buildEvidenceFromCommand(
   step: QueryStep,
   result: CommandResult,
@@ -203,6 +284,10 @@ export function buildEvidenceFromCommand(
 
   if (step.id === 'q2') {
     return parseTokenInfoEvidence(step, result.stdout, rawOutputPath)
+  }
+
+  if (['q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10'].includes(step.id)) {
+    return parseGenericMetricEvidence(step, result.stdout, rawOutputPath)
   }
 
   const parsed = tryParseJson<Record<string, unknown>>(result.stdout.trim())

@@ -25,7 +25,7 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       id: 'q3',
       label: 'Inspect token indicators',
       command: `nansen research token indicators --chain ${chain} --token ${token}`,
-      rationale: 'Pull high-level market/behavior indicators that could support or weaken the thesis.',
+      rationale: 'Pull high-level market and risk indicators that could support or weaken the thesis.',
       category: 'token',
       expectedSignal: 'contextual',
     },

@@ -23,12 +23,23 @@ function buildCaveats(run: PlannerRun) {
   return caveats
 }
 
+function buildAgentSummary(strongestBullEvidence: Evidence | null, strongestBearEvidence: Evidence | null) {
+  return {
+    strongestBullCase: strongestBullEvidence?.summary ?? 'No strong bull-side evidence yet.',
+    strongestBearCase: strongestBearEvidence?.summary ?? 'No strong bear-side evidence yet.',
+  }
+}
+
 export function buildStructuredReport(
   run: PlannerRun,
 ): StructuredReport & {
   strongestBullEvidence: Evidence | null
   strongestBearEvidence: Evidence | null
   caveats: string[]
+  agentSummary: {
+    strongestBullCase: string
+    strongestBearCase: string
+  }
 } {
   const verdict = buildVerdict(run.evidence, run.executed)
   const executedQueries = run.evidence.length
@@ -71,6 +82,7 @@ export function buildStructuredReport(
     strongestBullEvidence,
     strongestBearEvidence,
     caveats,
+    agentSummary: buildAgentSummary(strongestBullEvidence, strongestBearEvidence),
   }
 }
 
@@ -113,6 +125,10 @@ ${report.strongestBullEvidence ? `- ${report.strongestBullEvidence.summary}` : '
 
 ## Strongest Bear Evidence
 ${report.strongestBearEvidence ? `- ${report.strongestBearEvidence.summary}` : '- None yet'}
+
+## Agent Summary
+- Strongest bull case: ${report.agentSummary.strongestBullCase}
+- Strongest bear case: ${report.agentSummary.strongestBearCase}
 
 ## Caveats
 ${report.caveats.map((c) => `- ${c}`).join('\n') || '- None'}

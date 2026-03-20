@@ -26,6 +26,20 @@ export function buildVerdict(evidence: Evidence[], executed: boolean): Verdict {
     if (liquidity > 1_000_000) bullSignal += 0.5
   }
 
+  for (const entry of evidence) {
+    const netFlow = getMetricNumber(entry, 'netFlow')
+    const score = getMetricNumber(entry, 'score')
+    const inflow = getMetricNumber(entry, 'inflow')
+    const outflow = getMetricNumber(entry, 'outflow')
+
+    if (netFlow > 0) bullSignal += 1
+    if (netFlow < 0) bearSignal += 1
+    if (inflow > outflow && inflow > 0) bullSignal += 0.75
+    if (outflow > inflow && outflow > 0) bearSignal += 0.75
+    if (score >= 60) bullSignal += 0.75
+    if (score > 0 && score <= 40) bearSignal += 0.75
+  }
+
   const delta = bullSignal - bearSignal
   const absDelta = Math.abs(delta)
   const confidence: Verdict['confidence'] = absDelta >= 3 ? 'high' : absDelta >= 1 ? 'medium' : 'low'
@@ -54,7 +68,7 @@ export function buildVerdict(evidence: Evidence[], executed: boolean): Verdict {
       bullSignal,
       bearSignal,
       explanation:
-        'Supportive evidence currently outweighs contradictory evidence across the executed investigation set, with positive buy-side pressure in the current token-info snapshot.',
+        'Supportive evidence currently outweighs contradictory evidence across the executed investigation set, suggesting the thesis is gaining confirmation.',
     }
   }
 
@@ -68,7 +82,7 @@ export function buildVerdict(evidence: Evidence[], executed: boolean): Verdict {
       bullSignal,
       bearSignal,
       explanation:
-        'Contradictory evidence currently outweighs supportive evidence across the executed investigation set, suggesting the thesis is currently weakening rather than strengthening.',
+        'Contradictory evidence currently outweighs supportive evidence across the executed investigation set, suggesting the thesis is weakening rather than strengthening.',
     }
   }
 
