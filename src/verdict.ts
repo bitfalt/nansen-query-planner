@@ -40,6 +40,8 @@ export function buildVerdict(evidence: Evidence[], executed: boolean): Verdict {
     const topFiveHolderSharePct = getMetricNumber(entry, 'topFiveHolderSharePct')
     const profitableRatio = getMetricNumber(entry, 'profitableRatio')
     const avgWinRate = getMetricNumber(entry, 'avgWinRate')
+    const avgRoiPct = getMetricNumber(entry, 'avgRoiPct')
+    const avgStillHoldingRatio = getMetricNumber(entry, 'avgStillHoldingRatio')
     const priceChangePct = getMetricNumber(entry, 'priceChangePct')
 
     if (netFlow > 0) bullSignal += 1
@@ -61,6 +63,8 @@ export function buildVerdict(evidence: Evidence[], executed: boolean): Verdict {
     if (topHolderSharePct >= 20) bearSignal += 0.5
     if (topFiveHolderSharePct >= 50) bearSignal += 1
     if (profitableRatio >= 0.7 && avgWinRate >= 0.55) bearSignal += 0.5
+    if (profitableRatio >= 0.7 && avgRoiPct >= 5) bearSignal += 0.5
+    if (profitableRatio >= 0.7 && avgStillHoldingRatio >= 0.25) bearSignal += 0.5
     if (profitableRatio > 0 && profitableRatio <= 0.3 && avgWinRate > 0 && avgWinRate <= 0.45) {
       bullSignal += 0.5
     }

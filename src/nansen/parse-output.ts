@@ -219,6 +219,11 @@ function normalizeRatio(value: number | undefined) {
   return value > 1 ? value / 100 : value
 }
 
+function normalizePercentValue(value: number | undefined) {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 0
+  return Math.abs(value) <= 1 ? value * 100 : value
+}
+
 function parseSearchEvidence(step: QueryStep, stdout: string, rawOutputPath: string): Evidence {
   const parsed = tryParseJson<SearchResponse>(stdout)
   const tokens = parsed?.data?.tokens ?? []
@@ -561,7 +566,11 @@ function parseHolderDistributionEvidence(step: QueryStep, stdout: string, rawOut
   }
 
   const shares = rows
-    .map((row) => getObjectMetricByPatterns(row, [/ownershippct/, /holdingpct/, /sharepct/, /percentage/, /percent/, /share/])?.value ?? 0)
+    .map((row) =>
+      normalizePercentValue(
+        getObjectMetricByPatterns(row, [/ownershippct/, /holdingpct/, /sharepct/, /percentage/, /percent/, /share/])?.value,
+      ),
+    )
     .filter((value) => value > 0)
     .sort((a, b) => b - a)
   const topHolderSharePct = shares[0] ?? 0
@@ -701,18 +710,28 @@ function parsePnlEvidence(step: QueryStep, stdout: string, rawOutputPath: string
   const winRates = rows
     .map((row) => normalizeRatio(getObjectMetricByPatterns(row, [/winrate/, /winningrate/, /successrate/])?.value))
     .filter((value) => value > 0)
+  const roiPercentages = rows
+    .map((row) => normalizePercentValue(getObjectMetricByPatterns(row, [/roipercenttotal/, /roipercent/, /roi/])?.value))
+    .filter((value) => value !== 0)
+  const stillHoldingRatios = rows
+    .map((row) => normalizeRatio(getObjectMetricByPatterns(row, [/stillholdingbalanceratio/, /holdingratio/, /holdingbalance/])?.value))
+    .filter((value) => value >= 0)
   const positiveRows = pnlValues.filter((value) => value > 0).length
   const negativeRows = pnlValues.filter((value) => value < 0).length
   const avgPnlUsd = pnlValues.length ? pnlValues.reduce((sum, value) => sum + value, 0) / pnlValues.length : 0
   const avgWinRate = winRates.length ? winRates.reduce((sum, value) => sum + value, 0) / winRates.length : 0
+  const avgRoiPct = roiPercentages.length ? roiPercentages.reduce((sum, value) => sum + value, 0) / roiPercentages.length : 0
+  const avgStillHoldingRatio = stillHoldingRatios.length
+    ? stillHoldingRatios.reduce((sum, value) => sum + value, 0) / stillHoldingRatios.length
+    : 0
   const profitableRatio = pnlValues.length ? positiveRows / pnlValues.length : 0
 
   let stance: Evidence['stance'] = 'neutral'
   let signalStrength = 0.75
-  if (profitableRatio >= 0.7 && avgWinRate >= 0.55) {
+  if (profitableRatio >= 0.7 && avgRoiPct >= 5 && avgStillHoldingRatio >= 0.25) {
     stance = 'bear'
-    signalStrength = 1.0
-  } else if (profitableRatio <= 0.3 && avgWinRate > 0 && avgWinRate <= 0.45) {
+    signalStrength = 1.25
+  } else if (profitableRatio <= 0.3 && avgRoiPct <= 0 && avgStillHoldingRatio <= 0.2) {
     stance = 'bull'
     signalStrength = 1.0
   }
@@ -724,6 +743,8 @@ function parsePnlEvidence(step: QueryStep, stdout: string, rawOutputPath: string
       `${step.label} analyzed ${rows.length} PnL row(s).`,
       `Average PnL ${formatSignedUsd(avgPnlUsd)}.`,
       `Profitable rows ${formatNumber(positiveRows)} vs losing rows ${formatNumber(negativeRows)}.`,
+      avgRoiPct ? `Average ROI ${formatPercent(avgRoiPct)}.` : null,
+      avgStillHoldingRatio ? `Average still-holding ratio ${formatPercent(avgStillHoldingRatio, true)}.` : null,
       avgWinRate > 0 ? `Average win rate ${formatPercent(avgWinRate, true)}.` : null,
     ].filter(Boolean).join(' '),
     stance,
@@ -734,6 +755,8 @@ function parsePnlEvidence(step: QueryStep, stdout: string, rawOutputPath: string
       pnlRows: rows.length,
       avgPnlUsd,
       avgWinRate,
+      avgRoiPct,
+      avgStillHoldingRatio,
       profitableRatio,
     },
     rawOutputPath,
