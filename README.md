@@ -21,11 +21,19 @@ The planner emits:
 - `report.json` for agents / LLMs / downstream automation
 
 ## Current limitation
-The planner now produces a better structured report, but live evidence parsing is still heuristic. It still needs stronger command-family-specific extraction to become Week 1 demo complete.
+The planner is now command-family-aware and budget-aware, but it still needs more saved live payload fixtures to fully harden every parser and verdict rule.
 
 ## Development
 ```bash
 bun install
 bun run planner:demo
+bun run planner:demo:safe
+bun run planner:demo:expanded
 bun run typecheck
 ```
+
+## Budget profiles
+- `safe`: `8` calls / `80` credits
+- `expanded`: `10` calls / `200` credits
+
+Use `docs/parser-battle-test-plan.md` to decide which live runs are worth spending credits on.

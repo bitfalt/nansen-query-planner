@@ -16,7 +16,10 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "planner:demo": "bun run bin/nansen-query-planner.ts --token HYPE --thesis \"Smart money is accumulating HYPE\" --mode plan",
-    "planner:demo:thesis": "bun run bin/nansen-query-planner.ts --thesis \"A lot of capital is moving into Starknet since they just revealed private BTC and private ERC20s. I believe smart money is moving into Starknet.\" --mode plan"
+    "planner:demo:thesis": "bun run bin/nansen-query-planner.ts --thesis \"A lot of capital is moving into Starknet since they just revealed private BTC and private ERC20s. I believe smart money is moving into Starknet.\" --mode plan",
+    "planner:demo:safe": "bun run bin/nansen-query-planner.ts --thesis \"A lot of capital is moving into Starknet since they just revealed private BTC and private ERC20s. I believe smart money is moving into Starknet.\" --mode plan --budget-profile safe",
+    "planner:demo:expanded": "bun run bin/nansen-query-planner.ts --thesis \"A lot of capital is moving into Starknet since they just revealed private BTC and private ERC20s. I believe smart money is moving into Starknet.\" --mode plan --budget-profile expanded",
+    "parser:replay": "bun run bin/replay-parser-run.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

@@ -2,6 +2,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
+  resolveBudgetProfile,
   buildWeekOnePlan,
   buildMarkdownReport,
   buildStructuredReport,
@@ -20,8 +21,9 @@ const token = getArg('--token')
 const thesis = getArg('--thesis', 'Smart money is accumulating this token')!
 const chain = getArg('--chain')
 const mode = (getArg('--mode', 'plan') as 'plan' | 'execute')
-const maxCallsArg = Number(getArg('--max-calls', '10'))
-const maxCreditsArg = Number(getArg('--max-credits', '0'))
+const budgetProfile = resolveBudgetProfile(getArg('--budget-profile', 'safe'))
+const maxCallsArg = Number(getArg('--max-calls', String(budgetProfile.maxCalls)))
+const maxCreditsArg = Number(getArg('--max-credits', String(budgetProfile.maxCredits)))
 const runId = `run_${new Date().toISOString().replace(/[:.]/g, '-')}`
 const runDir = join(process.cwd(), 'outputs', 'runs', runId)
 mkdirSync(runDir, { recursive: true })
@@ -53,8 +55,10 @@ console.log(
       success: true,
       runId,
       mode,
+      budgetProfile: budgetProfile.name,
       thesisProfile: profile,
       maxCredits: maxCredits ?? null,
+      maxCalls: maxCallsArg,
       steps: run.steps.length,
       executed: run.executed,
       reportPath,
