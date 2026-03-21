@@ -31,19 +31,6 @@ Week 1 product shell lives in:
 - Do not commit secrets.
 - Do not document personal machine-specific secret file paths in public docs.
 
-## Current reality
-What already works:
-- planner demo
-- machine-consumable structured report
-- markdown report
-- token resolution from search into downstream execution
-- bounded live validation for the first execute path
-
-What is still weak:
-- richer parsing for more query families
-- stronger verdict logic across more live signals
-- deeper execute-mode confidence
-
 ## Credit discipline
 Current budget is finite and should still be treated carefully.
 Use `docs/credit-budget.md` as the source of truth before doing more live runs.
@@ -57,13 +44,8 @@ Default rule:
 Read in this order:
 1. `README.md`
 2. `docs/credit-budget.md`
-3. `docs/missing-for-end-to-end.md`
+3. `docs/architecture.md`
 4. `src/types.ts`
 5. `src/nansen/parse-output.ts`
 6. `src/verdict.ts`
 7. `src/report.ts`
-
-## Current next best steps
-1. Improve parsers for the next most valuable query families.
-2. Improve verdict composition using richer parsed metrics.
-3. Keep the report useful for both humans and downstream agents.

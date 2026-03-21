@@ -4,3 +4,4 @@ bun.lock
 outputs/runs/*
 !outputs/runs/.gitkeep
 dist
+.private/
