@@ -63,6 +63,12 @@ export type StructuredReport = {
     executedQueries: number
     categories: string[]
     estimatedTotalCredits: number
+    recommendedBudgetProfile: 'safe' | 'expanded'
+    recommendedBudgetReasoning: string[]
+    budgetOptions: {
+      safe: { maxCalls: number; maxCredits: number }
+      expanded: { maxCalls: number; maxCredits: number }
+    }
   }
   llmSummary: {
     oneSentence: string
@@ -92,6 +98,7 @@ export type StructuredReport = {
       | 'crowding-risk'
       | 'momentum-confirmation'
       | 'general'
+    ambiguityWarning?: string
     confidence: 'low' | 'medium' | 'high'
     reasoning: string[]
   }

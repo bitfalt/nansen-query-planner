@@ -1,6 +1,7 @@
 import type { PlannerRun, StructuredReport, Evidence } from './types'
 import { buildVerdict } from './verdict'
 import { buildThesisProfile } from './thesis/profile'
+import { BUDGET_PROFILES, recommendBudgetProfile } from './budget'
 
 function pickStrongest(evidence: Evidence[], stance: 'bull' | 'bear') {
   return (
@@ -11,6 +12,8 @@ function pickStrongest(evidence: Evidence[], stance: 'bull' | 'bear') {
 }
 
 function buildCaveats(run: PlannerRun) {
+  const profile = buildThesisProfile(run.input)
+  const budgetRecommendation = recommendBudgetProfile(profile)
   const caveats: string[] = []
   if (!run.executed) {
     caveats.push('The report is based on planning mode only; live evidence has not been collected yet.')
@@ -20,6 +23,15 @@ function buildCaveats(run: PlannerRun) {
   }
   if (run.evidence.length < 3) {
     caveats.push('Only a small subset of the planned investigation has been executed so far.')
+  }
+  if (profile.ambiguityWarning) {
+    caveats.push(profile.ambiguityWarning)
+  }
+  if ((run.input.maxCredits ?? 0) > 0 && budgetRecommendation.recommendedProfile === 'expanded') {
+    const safeBudget = BUDGET_PROFILES.safe.maxCredits
+    if ((run.input.maxCredits ?? 0) <= safeBudget) {
+      caveats.push('This thesis likely wants the expanded budget profile; the current run may under-cover some claims.')
+    }
   }
   return caveats
 }
@@ -53,6 +65,7 @@ export function buildStructuredReport(
   const executedQueries = run.evidence.length
   const categories = [...new Set(run.steps.map((s) => s.category))] as string[]
   const estimatedTotalCredits = run.steps.reduce((sum, step) => sum + step.estimatedCostCredits, 0)
+  const budgetRecommendation = recommendBudgetProfile(profile)
   const strongestBullEvidence = pickStrongest(run.evidence, 'bull')
   const strongestBearEvidence = pickStrongest(run.evidence, 'bear')
   const caveats = buildCaveats(run)
@@ -72,6 +85,18 @@ export function buildStructuredReport(
       executedQueries,
       categories,
       estimatedTotalCredits,
+      recommendedBudgetProfile: budgetRecommendation.recommendedProfile,
+      recommendedBudgetReasoning: budgetRecommendation.reasoning,
+      budgetOptions: {
+        safe: {
+          maxCalls: BUDGET_PROFILES.safe.maxCalls,
+          maxCredits: BUDGET_PROFILES.safe.maxCredits,
+        },
+        expanded: {
+          maxCalls: BUDGET_PROFILES.expanded.maxCalls,
+          maxCredits: BUDGET_PROFILES.expanded.maxCredits,
+        },
+      },
     },
     llmSummary: {
       oneSentence: `${verdict.decision} (${verdict.confidence}) on thesis: ${run.input.thesis}`,
@@ -135,6 +160,9 @@ ${report.executed ? 'yes' : 'no'}
 - Executed queries: ${report.plannerSummary.executedQueries}
 - Categories: ${report.plannerSummary.categories.join(', ')}
 - Estimated credits: ${report.plannerSummary.estimatedTotalCredits}
+- Recommended budget profile: ${report.plannerSummary.recommendedBudgetProfile}
+- Safe budget: ${report.plannerSummary.budgetOptions.safe.maxCalls} calls / ${report.plannerSummary.budgetOptions.safe.maxCredits} credits
+- Expanded budget: ${report.plannerSummary.budgetOptions.expanded.maxCalls} calls / ${report.plannerSummary.budgetOptions.expanded.maxCredits} credits
 
 ## LLM/Agent Summary
 - One sentence: ${report.llmSummary.oneSentence}

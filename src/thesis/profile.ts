@@ -25,8 +25,8 @@ const ENTITY_ALIASES: Array<{
   token: string
   chain?: string
 }> = [
-  { pattern: /\bhyperliquid\b/i, subject: 'Hyperliquid', token: 'HYPE', chain: 'solana' },
-  { pattern: /\bhype\b/i, subject: 'HYPE', token: 'HYPE', chain: 'solana' },
+  { pattern: /\bhyperliquid\b/i, subject: 'Hyperliquid', token: 'HYPE' },
+  { pattern: /\bhype\b/i, subject: 'HYPE', token: 'HYPE' },
   { pattern: /\bstarknet\b/i, subject: 'Starknet', token: 'STRK', chain: 'starknet' },
   { pattern: /\bbitcoin\b/i, subject: 'Bitcoin', token: 'BTC', chain: 'bitcoin' },
   { pattern: /\bethereum\b/i, subject: 'Ethereum', token: 'ETH', chain: 'ethereum' },
@@ -34,6 +34,20 @@ const ENTITY_ALIASES: Array<{
 ]
 
 const STOP_TICKERS = new Set(['I', 'A', 'THE', 'AND', 'OR', 'USD', 'TVL', 'BTC', 'ETH'])
+
+const AMBIGUOUS_TOKENS: Record<
+  string,
+  {
+    preferredChain: string
+    warning: string
+  }
+> = {
+  HYPE: {
+    preferredChain: 'hyperevm',
+    warning:
+      'HYPE is chain-ambiguous across hyperevm, hyperliquid, and solana. Prefer an explicit chain when the thesis is asset-specific.',
+  },
+}
 
 export type ThesisLens =
   | 'smart-money'
@@ -57,6 +71,7 @@ export type ThesisProfile = {
   lenses: ThesisLens[]
   claimPolarity: 'positive' | 'negative'
   claimFocus: ClaimFocus
+  ambiguityWarning?: string
   confidence: 'low' | 'medium' | 'high'
   reasoning: string[]
 }
@@ -206,9 +221,10 @@ export function buildThesisProfile(input: ThesisInput): ThesisProfile {
   const inferredChain = inferChain(input.thesis)
   const queryFromText = inferSearchQuery(input.thesis)
   const tokenHint = input.token ?? alias?.token ?? ticker ?? queryFromText ?? 'TOKEN'
+  const ambiguity = AMBIGUOUS_TOKENS[tokenHint.toUpperCase()]
   const searchQuery =
     input.token ?? alias?.subject ?? queryFromText ?? ticker ?? input.thesis.slice(0, 60).trim()
-  const chainHint = input.chain ?? alias?.chain ?? inferredChain ?? 'solana'
+  const chainHint = input.chain ?? alias?.chain ?? inferredChain ?? ambiguity?.preferredChain ?? 'solana'
 
   const reasoning = unique(
     [
@@ -218,6 +234,7 @@ export function buildThesisProfile(input: ThesisInput): ThesisProfile {
       ticker && !input.token ? `Found uppercase ticker candidate in thesis: ${ticker}.` : null,
       queryFromText && !alias ? `Extracted subject phrase from thesis: ${queryFromText}.` : null,
       inferredChain && !input.chain ? `Detected chain mention in thesis: ${inferredChain}.` : null,
+      !input.chain && ambiguity ? `Defaulting to ${ambiguity.preferredChain} until the user or search results disambiguate the asset.` : null,
     ].filter(Boolean) as string[],
   )
 
@@ -235,6 +252,7 @@ export function buildThesisProfile(input: ThesisInput): ThesisProfile {
     lenses: detectLenses(input.thesis),
     claimPolarity: detectClaimPolarity(input.thesis),
     claimFocus: detectClaimFocus(input.thesis),
+    ambiguityWarning: !input.chain ? ambiguity?.warning : undefined,
     confidence,
     reasoning,
   }
