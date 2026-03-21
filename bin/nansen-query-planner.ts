@@ -21,18 +21,17 @@ const thesis = getArg('--thesis', 'Smart money is accumulating this token')!
 const chain = getArg('--chain')
 const mode = (getArg('--mode', 'plan') as 'plan' | 'execute')
 const maxCallsArg = Number(getArg('--max-calls', '10'))
+const maxCreditsArg = Number(getArg('--max-credits', '0'))
 const runId = `run_${new Date().toISOString().replace(/[:.]/g, '-')}`
 const runDir = join(process.cwd(), 'outputs', 'runs', runId)
 mkdirSync(runDir, { recursive: true })
-const profile = buildThesisProfile({ token, thesis, chain, mode, maxCalls: maxCallsArg })
+const maxCredits = Number.isFinite(maxCreditsArg) && maxCreditsArg > 0 ? maxCreditsArg : undefined
+const profile = buildThesisProfile({ token, thesis, chain, mode, maxCalls: maxCallsArg, maxCredits })
 
 let run: PlannerRun = {
   runId,
-  input: { token, thesis, chain, mode, maxCalls: maxCallsArg },
-  steps: buildWeekOnePlan({ token, thesis, chain, mode, maxCalls: maxCallsArg }).slice(
-    0,
-    Number.isFinite(maxCallsArg) ? maxCallsArg : 10,
-  ),
+  input: { token, thesis, chain, mode, maxCalls: maxCallsArg, maxCredits },
+  steps: buildWeekOnePlan({ token, thesis, chain, mode, maxCalls: maxCallsArg, maxCredits }),
   evidence: [],
   executed: false,
 }
@@ -55,6 +54,7 @@ console.log(
       runId,
       mode,
       thesisProfile: profile,
+      maxCredits: maxCredits ?? null,
       steps: run.steps.length,
       executed: run.executed,
       reportPath,

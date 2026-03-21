@@ -211,9 +211,63 @@ function scoreStep(step: QueryStep, profile: ThesisProfile) {
     if (step.id === 'q10') score += 10
   }
 
+  if (!profile.lenses.includes('momentum') && step.id === 'q3') score -= 20
+  if (!profile.lenses.includes('holders') && step.id === 'q7') score -= 15
+  if (!profile.lenses.includes('valuation') && step.id === 'q9') score -= 5
+
+  if (step.estimatedCostCredits >= 50) {
+    score -= 25
+  } else if (step.estimatedCostCredits >= 20) {
+    score -= 10
+  }
+
   return score
 }
 
-export function prioritizePlan(steps: QueryStep[], profile: ThesisProfile) {
-  return [...steps].sort((a, b) => scoreStep(b, profile) - scoreStep(a, profile))
+function isMandatory(step: QueryStep) {
+  return step.id === 'q1' || step.id === 'q2'
+}
+
+function utilityPerCredit(step: QueryStep, profile: ThesisProfile) {
+  return scoreStep(step, profile) / Math.max(step.estimatedCostCredits, 1)
+}
+
+export function prioritizePlan(
+  steps: QueryStep[],
+  profile: ThesisProfile,
+  maxCalls?: number,
+  maxCredits?: number,
+) {
+  const budget = Number.isFinite(maxCredits) ? (maxCredits as number) : Number.POSITIVE_INFINITY
+  const callLimit = Number.isFinite(maxCalls) ? Math.max(1, maxCalls as number) : steps.length
+
+  const mandatory = steps
+    .filter(isMandatory)
+    .sort((a, b) => scoreStep(b, profile) - scoreStep(a, profile))
+  const optional = steps
+    .filter((step) => !isMandatory(step))
+    .sort((a, b) => {
+      const byUtility = utilityPerCredit(b, profile) - utilityPerCredit(a, profile)
+      if (byUtility !== 0) return byUtility
+      return scoreStep(b, profile) - scoreStep(a, profile)
+    })
+
+  const selected: QueryStep[] = []
+  let spent = 0
+
+  for (const step of mandatory) {
+    if (selected.length >= callLimit) break
+    if (spent + step.estimatedCostCredits > budget && selected.length > 0) continue
+    selected.push(step)
+    spent += step.estimatedCostCredits
+  }
+
+  for (const step of optional) {
+    if (selected.length >= callLimit) break
+    if (spent + step.estimatedCostCredits > budget) continue
+    selected.push(step)
+    spent += step.estimatedCostCredits
+  }
+
+  return selected
 }

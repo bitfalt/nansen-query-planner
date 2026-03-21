@@ -4,6 +4,7 @@ export type ThesisInput = {
   chain?: string
   mode: 'plan' | 'execute'
   maxCalls?: number
+  maxCredits?: number
 }
 
 export type QueryStep = {
@@ -12,7 +13,18 @@ export type QueryStep = {
   command: string
   rationale: string
   category: 'search' | 'token' | 'smart-money' | 'profiler'
+  queryFamily:
+    | 'identity'
+    | 'baseline'
+    | 'indicators'
+    | 'flows'
+    | 'flow-intelligence'
+    | 'holders'
+    | 'participants'
+    | 'pnl'
+    | 'price'
   expectedSignal: 'supportive' | 'contradictory' | 'contextual'
+  estimatedCostCredits: number
 }
 
 export type Evidence = {
@@ -50,6 +62,7 @@ export type StructuredReport = {
     totalQueries: number
     executedQueries: number
     categories: string[]
+    estimatedTotalCredits: number
   }
   llmSummary: {
     oneSentence: string

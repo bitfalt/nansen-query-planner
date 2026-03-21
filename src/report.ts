@@ -46,6 +46,7 @@ export function buildStructuredReport(
   const profile = buildThesisProfile(run.input)
   const executedQueries = run.evidence.length
   const categories = [...new Set(run.steps.map((s) => s.category))] as string[]
+  const estimatedTotalCredits = run.steps.reduce((sum, step) => sum + step.estimatedCostCredits, 0)
   const strongestBullEvidence = pickStrongest(run.evidence, 'bull')
   const strongestBearEvidence = pickStrongest(run.evidence, 'bear')
   const caveats = buildCaveats(run)
@@ -64,6 +65,7 @@ export function buildStructuredReport(
       totalQueries: run.steps.length,
       executedQueries,
       categories,
+      estimatedTotalCredits,
     },
     llmSummary: {
       oneSentence: `${verdict.decision} (${verdict.confidence}) on thesis: ${run.input.thesis}`,
@@ -124,6 +126,7 @@ ${report.executed ? 'yes' : 'no'}
 - Total queries: ${report.plannerSummary.totalQueries}
 - Executed queries: ${report.plannerSummary.executedQueries}
 - Categories: ${report.plannerSummary.categories.join(', ')}
+- Estimated credits: ${report.plannerSummary.estimatedTotalCredits}
 
 ## LLM/Agent Summary
 - One sentence: ${report.llmSummary.oneSentence}

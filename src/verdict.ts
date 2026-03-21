@@ -31,13 +31,41 @@ export function buildVerdict(evidence: Evidence[], executed: boolean): Verdict {
     const score = getMetricNumber(entry, 'score')
     const inflow = getMetricNumber(entry, 'inflow')
     const outflow = getMetricNumber(entry, 'outflow')
+    const aggregateNetFlow = getMetricNumber(entry, 'aggregateNetFlow')
+    const latestNetFlow = getMetricNumber(entry, 'latestNetFlow')
+    const smartMoneyNetFlow = getMetricNumber(entry, 'smartMoneyNetFlow')
+    const participantNetFlow = getMetricNumber(entry, 'participantNetFlow')
+    const indicatorNetSignal = getMetricNumber(entry, 'netIndicatorSignal')
+    const topHolderSharePct = getMetricNumber(entry, 'topHolderSharePct')
+    const topFiveHolderSharePct = getMetricNumber(entry, 'topFiveHolderSharePct')
+    const profitableRatio = getMetricNumber(entry, 'profitableRatio')
+    const avgWinRate = getMetricNumber(entry, 'avgWinRate')
+    const priceChangePct = getMetricNumber(entry, 'priceChangePct')
 
     if (netFlow > 0) bullSignal += 1
     if (netFlow < 0) bearSignal += 1
+    if (latestNetFlow > 0) bullSignal += 0.75
+    if (latestNetFlow < 0) bearSignal += 0.75
+    if (aggregateNetFlow > 0) bullSignal += 1
+    if (aggregateNetFlow < 0) bearSignal += 1
     if (inflow > outflow && inflow > 0) bullSignal += 0.75
     if (outflow > inflow && outflow > 0) bearSignal += 0.75
     if (score >= 60) bullSignal += 0.75
     if (score > 0 && score <= 40) bearSignal += 0.75
+    if (smartMoneyNetFlow > 0) bullSignal += 1
+    if (smartMoneyNetFlow < 0) bearSignal += 1
+    if (participantNetFlow > 0) bullSignal += 0.75
+    if (participantNetFlow < 0) bearSignal += 0.75
+    if (indicatorNetSignal > 0.75) bullSignal += 0.75
+    if (indicatorNetSignal < -0.75) bearSignal += 0.75
+    if (topHolderSharePct >= 20) bearSignal += 0.5
+    if (topFiveHolderSharePct >= 50) bearSignal += 1
+    if (profitableRatio >= 0.7 && avgWinRate >= 0.55) bearSignal += 0.5
+    if (profitableRatio > 0 && profitableRatio <= 0.3 && avgWinRate > 0 && avgWinRate <= 0.45) {
+      bullSignal += 0.5
+    }
+    if (priceChangePct >= 3) bullSignal += 0.5
+    if (priceChangePct <= -3) bearSignal += 0.5
   }
 
   const delta = bullSignal - bearSignal

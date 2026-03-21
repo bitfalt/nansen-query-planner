@@ -13,7 +13,9 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       command: `nansen research search --query "${profile.searchQuery}" --limit 5`,
       rationale: 'Confirm the entity, resolve the best token candidate, and collect the first contextual anchors.',
       category: 'search',
+      queryFamily: 'identity',
       expectedSignal: 'contextual',
+      estimatedCostCredits: 10,
     },
     {
       id: 'q2',
@@ -21,7 +23,9 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       command: `nansen research token info --chain ${chain} --token ${token}`,
       rationale: 'Establish the token identity, contract, market structure, and baseline metadata.',
       category: 'token',
+      queryFamily: 'baseline',
       expectedSignal: 'contextual',
+      estimatedCostCredits: 10,
     },
     {
       id: 'q3',
@@ -29,7 +33,9 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       command: `nansen research token indicators --chain ${chain} --token ${token}`,
       rationale: 'Pull high-level market, momentum, and risk indicators that could support or weaken the thesis.',
       category: 'token',
+      queryFamily: 'indicators',
       expectedSignal: 'contextual',
+      estimatedCostCredits: 50,
     },
     {
       id: 'q4',
@@ -37,7 +43,9 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       command: `nansen research token flows --chain ${chain} --token ${token} --days 7`,
       rationale: 'Check short-term net flow pressure, recent capital direction, and whether the move is accelerating.',
       category: 'token',
+      queryFamily: 'flows',
       expectedSignal: 'supportive',
+      estimatedCostCredits: 10,
     },
     {
       id: 'q5',
@@ -45,7 +53,9 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       command: `nansen research token flows --chain ${chain} --token ${token} --days 30`,
       rationale: 'Compare the short-term claim to medium-term capital movement and persistence.',
       category: 'token',
+      queryFamily: 'flows',
       expectedSignal: 'contextual',
+      estimatedCostCredits: 10,
     },
     {
       id: 'q6',
@@ -53,7 +63,9 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       command: `nansen research token flow-intelligence --chain ${chain} --token ${token} --days 7`,
       rationale: 'Identify the quality, source, and character of the capital flows behind the thesis.',
       category: 'token',
+      queryFamily: 'flow-intelligence',
       expectedSignal: 'supportive',
+      estimatedCostCredits: 10,
     },
     {
       id: 'q7',
@@ -61,7 +73,9 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       command: `nansen research token holders --chain ${chain} --token ${token}`,
       rationale: 'Check concentration, holder quality, and whether the ownership base contradicts the thesis.',
       category: 'token',
+      queryFamily: 'holders',
       expectedSignal: 'contradictory',
+      estimatedCostCredits: 50,
     },
     {
       id: 'q8',
@@ -69,7 +83,9 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       command: `nansen research token who-bought-sold --chain ${chain} --token ${token} --days 7`,
       rationale: 'Identify directional participants, smart-money behavior, and opposing evidence.',
       category: 'token',
+      queryFamily: 'participants',
       expectedSignal: 'contradictory',
+      estimatedCostCredits: 10,
     },
     {
       id: 'q9',
@@ -77,7 +93,9 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       command: `nansen research token pnl --chain ${chain} --token ${token} --days 30`,
       rationale: 'See whether current positioning looks healthy, crowded, or vulnerable to reversal.',
       category: 'token',
+      queryFamily: 'pnl',
       expectedSignal: 'contextual',
+      estimatedCostCredits: 10,
     },
     {
       id: 'q10',
@@ -85,9 +103,11 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       command: `nansen research token ohlcv --chain ${chain} --token ${token} --timeframe 1h`,
       rationale: 'Add price-action context to the evidence set and test whether momentum confirms the thesis.',
       category: 'token',
+      queryFamily: 'price',
       expectedSignal: 'contextual',
+      estimatedCostCredits: 10,
     },
   ]
 
-  return prioritizePlan(steps, profile)
+  return prioritizePlan(steps, profile, input.maxCalls, input.maxCredits)
 }
