@@ -154,6 +154,15 @@ function detectLenses(thesis: string): ThesisLens[] {
 
 function detectClaimPolarity(thesis: string): ThesisProfile['claimPolarity'] {
   const lower = thesis.toLowerCase()
+  const negatedRiskPatterns = [
+    /not yet showing .*crowded/,
+    /not yet showing .*unhealthy/,
+    /not .*crowded/,
+    /not .*unhealthy/,
+    /without obvious .*crowding/,
+    /without obvious .*exhaustion/,
+    /without unhealthy .*concentration/,
+  ]
   const negativePatterns = [
     /too concentrated/,
     /unhealthy/,
@@ -178,7 +187,7 @@ function detectClaimPolarity(thesis: string): ThesisProfile['claimPolarity'] {
     /smart money is moving into/,
   ]
 
-  if (negativePatterns.some((pattern) => pattern.test(lower))) {
+  if (!negatedRiskPatterns.some((pattern) => pattern.test(lower)) && negativePatterns.some((pattern) => pattern.test(lower))) {
     return 'negative'
   }
 
@@ -191,12 +200,14 @@ function detectClaimPolarity(thesis: string): ThesisProfile['claimPolarity'] {
 
 function detectClaimFocus(thesis: string): ClaimFocus {
   const lower = thesis.toLowerCase()
+  const negatedCrowding = /not yet showing .*crowded|not .*crowded|without obvious .*crowding|without obvious .*exhaustion/.test(lower)
+  const negatedConcentration = /not yet showing .*unhealthy|not .*unhealthy|without unhealthy .*concentration/.test(lower)
 
-  if (/too concentrated|few wallets|holder base|unhealthy/.test(lower)) {
+  if (!negatedConcentration && /too concentrated|few wallets|holder base|unhealthy/.test(lower)) {
     return 'concentration-risk'
   }
 
-  if (/crowded|late longs|trapped|overowned|overbought/.test(lower)) {
+  if (!negatedCrowding && /crowded|late longs|trapped|overowned|overbought/.test(lower)) {
     return 'crowding-risk'
   }
 
