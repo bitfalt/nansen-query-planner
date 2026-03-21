@@ -5,6 +5,7 @@ import {
   buildWeekOnePlan,
   buildMarkdownReport,
   buildStructuredReport,
+  buildThesisProfile,
   executePlan,
   type PlannerRun,
 } from '../src/index'
@@ -15,14 +16,15 @@ function getArg(flag: string, fallback?: string) {
   return process.argv[idx + 1] ?? fallback
 }
 
-const token = getArg('--token', 'TOKEN')!
+const token = getArg('--token')
 const thesis = getArg('--thesis', 'Smart money is accumulating this token')!
-const chain = getArg('--chain', 'solana')!
+const chain = getArg('--chain')
 const mode = (getArg('--mode', 'plan') as 'plan' | 'execute')
 const maxCallsArg = Number(getArg('--max-calls', '10'))
 const runId = `run_${new Date().toISOString().replace(/[:.]/g, '-')}`
 const runDir = join(process.cwd(), 'outputs', 'runs', runId)
 mkdirSync(runDir, { recursive: true })
+const profile = buildThesisProfile({ token, thesis, chain, mode, maxCalls: maxCallsArg })
 
 let run: PlannerRun = {
   runId,
@@ -52,6 +54,7 @@ console.log(
       success: true,
       runId,
       mode,
+      thesisProfile: profile,
       steps: run.steps.length,
       executed: run.executed,
       reportPath,

@@ -1,15 +1,17 @@
 import type { QueryStep, ThesisInput } from './types'
+import { buildThesisProfile, prioritizePlan } from './thesis/profile'
 
 export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
-  const token = input.token
-  const chain = input.chain
+  const profile = buildThesisProfile(input)
+  const token = profile.tokenHint
+  const chain = profile.chainHint
 
-  return [
+  const steps: QueryStep[] = [
     {
       id: 'q1',
       label: 'Resolve entity and search context',
-      command: `nansen research search --query "${token}" --limit 5`,
-      rationale: 'Confirm the entity and collect the first contextual anchors.',
+      command: `nansen research search --query "${profile.searchQuery}" --limit 5`,
+      rationale: 'Confirm the entity, resolve the best token candidate, and collect the first contextual anchors.',
       category: 'search',
       expectedSignal: 'contextual',
     },
@@ -17,7 +19,7 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       id: 'q2',
       label: 'Get token info',
       command: `nansen research token info --chain ${chain} --token ${token}`,
-      rationale: 'Establish the token identity, contract, and basic metadata.',
+      rationale: 'Establish the token identity, contract, market structure, and baseline metadata.',
       category: 'token',
       expectedSignal: 'contextual',
     },
@@ -25,7 +27,7 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       id: 'q3',
       label: 'Inspect token indicators',
       command: `nansen research token indicators --chain ${chain} --token ${token}`,
-      rationale: 'Pull high-level market and risk indicators that could support or weaken the thesis.',
+      rationale: 'Pull high-level market, momentum, and risk indicators that could support or weaken the thesis.',
       category: 'token',
       expectedSignal: 'contextual',
     },
@@ -33,7 +35,7 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       id: 'q4',
       label: '7-day token flows',
       command: `nansen research token flows --chain ${chain} --token ${token} --days 7`,
-      rationale: 'Check short-term net flow pressure and direction.',
+      rationale: 'Check short-term net flow pressure, recent capital direction, and whether the move is accelerating.',
       category: 'token',
       expectedSignal: 'supportive',
     },
@@ -41,7 +43,7 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       id: 'q5',
       label: '30-day token flows',
       command: `nansen research token flows --chain ${chain} --token ${token} --days 30`,
-      rationale: 'Compare short-term thesis to medium-term capital movement.',
+      rationale: 'Compare the short-term claim to medium-term capital movement and persistence.',
       category: 'token',
       expectedSignal: 'contextual',
     },
@@ -49,7 +51,7 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       id: 'q6',
       label: 'Flow intelligence',
       command: `nansen research token flow-intelligence --chain ${chain} --token ${token} --days 7`,
-      rationale: 'Identify the quality and character of capital flows.',
+      rationale: 'Identify the quality, source, and character of the capital flows behind the thesis.',
       category: 'token',
       expectedSignal: 'supportive',
     },
@@ -57,7 +59,7 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       id: 'q7',
       label: 'Holder distribution',
       command: `nansen research token holders --chain ${chain} --token ${token}`,
-      rationale: 'Check concentration and holder quality risk.',
+      rationale: 'Check concentration, holder quality, and whether the ownership base contradicts the thesis.',
       category: 'token',
       expectedSignal: 'contradictory',
     },
@@ -65,7 +67,7 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       id: 'q8',
       label: 'Who bought and sold recently',
       command: `nansen research token who-bought-sold --chain ${chain} --token ${token} --days 7`,
-      rationale: 'Identify directional participants and opposing evidence.',
+      rationale: 'Identify directional participants, smart-money behavior, and opposing evidence.',
       category: 'token',
       expectedSignal: 'contradictory',
     },
@@ -73,7 +75,7 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       id: 'q9',
       label: 'PnL snapshot',
       command: `nansen research token pnl --chain ${chain} --token ${token} --days 30`,
-      rationale: 'See whether current positioning looks healthy or crowded.',
+      rationale: 'See whether current positioning looks healthy, crowded, or vulnerable to reversal.',
       category: 'token',
       expectedSignal: 'contextual',
     },
@@ -81,9 +83,11 @@ export function buildWeekOnePlan(input: ThesisInput): QueryStep[] {
       id: 'q10',
       label: 'OHLCV context',
       command: `nansen research token ohlcv --chain ${chain} --token ${token} --timeframe 1h`,
-      rationale: 'Add price-action context to the evidence set.',
+      rationale: 'Add price-action context to the evidence set and test whether momentum confirms the thesis.',
       category: 'token',
       expectedSignal: 'contextual',
     },
   ]
+
+  return prioritizePlan(steps, profile)
 }

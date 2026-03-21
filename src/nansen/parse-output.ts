@@ -1,4 +1,5 @@
 import type { Evidence, QueryStep, CommandResult } from '../types'
+import { resolveTokenCandidateFromSearch } from './resolve-token'
 
 type SearchToken = {
   name?: string
@@ -64,6 +65,21 @@ function formatUsd(value: number | undefined) {
   return `$${Math.round(value).toLocaleString('en-US')}`
 }
 
+function formatSignedUsd(value: number | undefined) {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 'unknown'
+  const sign = value > 0 ? '+' : ''
+  return `${sign}${formatUsd(value)}`
+}
+
+function formatNumber(value: number | undefined) {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 'unknown'
+  return value.toLocaleString('en-US')
+}
+
+function normalizeMetricKey(value: string) {
+  return value.replace(/[^a-z0-9]+/gi, '').toLowerCase()
+}
+
 function collectNumbers(value: unknown, out: Record<string, number>, prefix = '') {
   if (Array.isArray(value)) {
     value.forEach((item, idx) => collectNumbers(item, out, `${prefix}${prefix ? '.' : ''}${idx}`))
@@ -80,22 +96,58 @@ function collectNumbers(value: unknown, out: Record<string, number>, prefix = ''
   }
 }
 
+function flattenNumbers(value: unknown) {
+  const out: Record<string, number> = {}
+  collectNumbers(value, out)
+  return out
+}
+
+function pickMetricByPatterns(
+  numbers: Record<string, number>,
+  patterns: RegExp[],
+  excludePatterns: RegExp[] = [],
+) {
+  for (const [key, value] of Object.entries(numbers)) {
+    const normalized = normalizeMetricKey(key)
+    if (excludePatterns.some((pattern) => pattern.test(normalized))) continue
+    if (patterns.some((pattern) => pattern.test(normalized))) {
+      return { key, value }
+    }
+  }
+
+  return null
+}
+
 function parseSearchEvidence(step: QueryStep, stdout: string, rawOutputPath: string): Evidence {
   const parsed = tryParseJson<SearchResponse>(stdout.trim())
   const tokens = parsed?.data?.tokens ?? []
+  const selected = resolveTokenCandidateFromSearch(stdout)
+  const preview = tokens
+    .slice(0, 3)
+    .map((token) => `${token.symbol ?? 'unknown'} on ${token.chain ?? 'unknown'}`)
+    .join(', ')
 
   return {
     id: `ev_${step.id}`,
     stepId: step.id,
     summary:
       tokens.length > 0
-        ? `${step.label} returned ${tokens.length} candidate token match(es).`
+        ? `${step.label} returned ${tokens.length} candidate token match(es). Top candidates: ${preview}.${selected ? ` Best current match: ${selected.symbol} on ${selected.chain}.` : ''}`
         : `${step.label} returned no token candidates.`,
     stance: 'neutral',
-    signalStrength: tokens.length > 0 ? 0.5 : 0,
+    signalStrength: tokens.length > 0 ? 0.75 : 0,
     metrics: {
       success: tokens.length > 0,
       candidateCount: tokens.length,
+      ...(selected
+        ? {
+            selectedSymbol: selected.symbol,
+            selectedName: selected.name,
+            selectedChain: selected.chain,
+            selectedAddress: selected.address,
+            selectedScore: selected.score,
+          }
+        : {}),
     },
     rawOutputPath,
   }
@@ -181,11 +233,132 @@ function parseTokenInfoEvidence(step: QueryStep, stdout: string, rawOutputPath: 
   }
 }
 
+function parseIndicatorsEvidence(step: QueryStep, stdout: string, rawOutputPath: string): Evidence {
+  const parsed = tryParseJson<Record<string, unknown>>(stdout.trim())
+  const data = parsed && typeof parsed === 'object' ? (parsed as { data?: unknown }).data : null
+  const numbers = flattenNumbers(data)
+  const score = pickMetricByPatterns(numbers, [/score/, /strength/, /rating/])
+  const priceChange = pickMetricByPatterns(numbers, [/pricechange/, /return/, /performance/, /change/, /pct/])
+  const volume = pickMetricByPatterns(numbers, [/volume/, /turnover/])
+  const liquidity = pickMetricByPatterns(numbers, [/liquidity/])
+  const holders = pickMetricByPatterns(numbers, [/holders?/, /holdercount/])
+
+  let stance: Evidence['stance'] = 'neutral'
+  let signalStrength = 0.75
+
+  if (score) {
+    if (score.value >= 60) {
+      stance = 'bull'
+      signalStrength = 1.25
+    } else if (score.value > 0 && score.value <= 40) {
+      stance = 'bear'
+      signalStrength = 1.25
+    }
+  }
+
+  if (priceChange && stance === 'neutral') {
+    if (priceChange.value > 0) {
+      stance = 'bull'
+      signalStrength = 1.0
+    } else if (priceChange.value < 0) {
+      stance = 'bear'
+      signalStrength = 1.0
+    }
+  }
+
+  const summaryParts = [
+    `${step.label} extracted indicator-level metrics.`,
+    score ? `Score signal ${formatNumber(score.value)}.` : null,
+    priceChange ? `Price/performance metric ${formatNumber(priceChange.value)}.` : null,
+    volume ? `Volume metric ${formatUsd(volume.value)}.` : null,
+    liquidity ? `Liquidity metric ${formatUsd(liquidity.value)}.` : null,
+    holders ? `Holder metric ${formatNumber(holders.value)}.` : null,
+  ].filter(Boolean)
+
+  return {
+    id: `ev_${step.id}`,
+    stepId: step.id,
+    summary: summaryParts.join(' '),
+    stance,
+    signalStrength,
+    metrics: {
+      success: true,
+      extractedMetricCount: Object.keys(numbers).length,
+      ...(score ? { score: score.value } : {}),
+      ...(priceChange ? { priceChange: priceChange.value } : {}),
+      ...(volume ? { volume: volume.value } : {}),
+      ...(liquidity ? { liquidityUsd: liquidity.value } : {}),
+      ...(holders ? { holders: holders.value } : {}),
+    },
+    rawOutputPath,
+  }
+}
+
+function parseFlowEvidence(step: QueryStep, stdout: string, rawOutputPath: string): Evidence {
+  const parsed = tryParseJson<Record<string, unknown>>(stdout.trim())
+  const data = parsed && typeof parsed === 'object' ? (parsed as { data?: unknown }).data : null
+  const numbers = flattenNumbers(data)
+  const netFlow = pickMetricByPatterns(numbers, [/netflow/, /netinflow/, /net$/, /flowbalance/])
+  const inflow = pickMetricByPatterns(numbers, [/inflow/, /flowin/], [/net/])
+  const outflow = pickMetricByPatterns(numbers, [/outflow/, /flowout/], [/net/])
+  const buyers = pickMetricByPatterns(numbers, [/buyers?/, /walletsbuying/, /uniquebuyers/])
+  const sellers = pickMetricByPatterns(numbers, [/sellers?/, /walletsselling/, /uniquesellers/])
+  const days = step.command.match(/--days\s+(\d+)/)?.[1] ?? step.label.match(/(\d+)-day/)?.[1] ?? 'unknown'
+
+  const derivedNetFlow =
+    netFlow?.value ??
+    (inflow && outflow ? inflow.value - outflow.value : null)
+
+  let stance: Evidence['stance'] = step.expectedSignal === 'supportive' ? 'bull' : 'neutral'
+  let signalStrength = step.expectedSignal === 'supportive' ? 1.0 : 0.75
+
+  if (typeof derivedNetFlow === 'number') {
+    if (derivedNetFlow > 0) {
+      stance = 'bull'
+      signalStrength = 1.5
+    } else if (derivedNetFlow < 0) {
+      stance = 'bear'
+      signalStrength = 1.5
+    }
+  }
+
+  if (buyers && sellers && buyers.value !== sellers.value) {
+    signalStrength += 0.25
+  }
+
+  const summaryParts = [
+    `${step.label} extracted ${days}-day flow metrics.`,
+    typeof derivedNetFlow === 'number' ? `Net flow ${formatSignedUsd(derivedNetFlow)}.` : null,
+    inflow ? `Inflow ${formatUsd(inflow.value)}.` : null,
+    outflow ? `Outflow ${formatUsd(outflow.value)}.` : null,
+    buyers ? `Buy-side wallets ${formatNumber(buyers.value)}.` : null,
+    sellers ? `Sell-side wallets ${formatNumber(sellers.value)}.` : null,
+  ].filter(Boolean)
+
+  return {
+    id: `ev_${step.id}`,
+    stepId: step.id,
+    summary: summaryParts.join(' '),
+    stance,
+    signalStrength,
+    metrics: {
+      success: true,
+      extractedMetricCount: Object.keys(numbers).length,
+      ...(typeof derivedNetFlow === 'number' ? { netFlow: derivedNetFlow } : {}),
+      ...(inflow ? { inflow: inflow.value } : {}),
+      ...(outflow ? { outflow: outflow.value } : {}),
+      ...(buyers ? { uniqueBuyers: buyers.value } : {}),
+      ...(sellers ? { uniqueSellers: sellers.value } : {}),
+      flowWindowDays: Number(days) || 0,
+    },
+    rawOutputPath,
+  }
+}
+
 function parseGenericMetricEvidence(step: QueryStep, stdout: string, rawOutputPath: string): Evidence {
   const parsed = tryParseJson<Record<string, unknown>>(stdout.trim())
   const data = parsed && typeof parsed === 'object' ? (parsed as any).data : null
-  const numbers: Record<string, number> = {}
-  collectNumbers(data, numbers)
+  const numbers = flattenNumbers(data)
 
   const entries = Object.entries(numbers)
   const lowerKeys = entries.map(([k]) => k.toLowerCase())
@@ -286,7 +459,15 @@ export function buildEvidenceFromCommand(
     return parseTokenInfoEvidence(step, result.stdout, rawOutputPath)
   }
 
-  if (['q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10'].includes(step.id)) {
+  if (step.id === 'q3') {
+    return parseIndicatorsEvidence(step, result.stdout, rawOutputPath)
+  }
+
+  if (step.id === 'q4' || step.id === 'q5') {
+    return parseFlowEvidence(step, result.stdout, rawOutputPath)
+  }
+
+  if (['q6', 'q7', 'q8', 'q9', 'q10'].includes(step.id)) {
     return parseGenericMetricEvidence(step, result.stdout, rawOutputPath)
   }
 

@@ -1,7 +1,7 @@
 export type ThesisInput = {
   thesis: string
-  token: string
-  chain: string
+  token?: string
+  chain?: string
   mode: 'plan' | 'execute'
   maxCalls?: number
 }
@@ -66,6 +66,14 @@ export type StructuredReport = {
   agentSummary: {
     strongestBullCase: string
     strongestBearCase: string
+  }
+  thesisProfile?: {
+    searchQuery: string
+    tokenHint: string
+    chainHint: string
+    lenses: string[]
+    confidence: 'low' | 'medium' | 'high'
+    reasoning: string[]
   }
 }
 

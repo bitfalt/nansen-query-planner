@@ -1,5 +1,6 @@
 import type { PlannerRun, StructuredReport, Evidence } from './types'
 import { buildVerdict } from './verdict'
+import { buildThesisProfile } from './thesis/profile'
 
 function pickStrongest(evidence: Evidence[], stance: 'bull' | 'bear') {
   return (
@@ -42,6 +43,7 @@ export function buildStructuredReport(
   }
 } {
   const verdict = buildVerdict(run.evidence, run.executed)
+  const profile = buildThesisProfile(run.input)
   const executedQueries = run.evidence.length
   const categories = [...new Set(run.steps.map((s) => s.category))] as string[]
   const strongestBullEvidence = pickStrongest(run.evidence, 'bull')
@@ -53,8 +55,8 @@ export function buildStructuredReport(
     runId: run.runId,
     generatedAt: new Date().toISOString(),
     thesis: run.input.thesis,
-    token: run.input.token,
-    chain: run.input.chain,
+    token: run.input.token ?? profile.tokenHint,
+    chain: run.input.chain ?? profile.chainHint,
     mode: run.input.mode,
     executed: run.executed,
     verdict,
@@ -83,6 +85,7 @@ export function buildStructuredReport(
     strongestBearEvidence,
     caveats,
     agentSummary: buildAgentSummary(strongestBullEvidence, strongestBearEvidence),
+    thesisProfile: profile,
   }
 }
 
@@ -96,6 +99,13 @@ ${report.thesis}
 
 ## Token
 ${report.token} on ${report.chain}
+
+## Thesis Profile
+- Search query: ${report.thesisProfile?.searchQuery ?? report.token}
+- Token hint: ${report.thesisProfile?.tokenHint ?? report.token}
+- Chain hint: ${report.thesisProfile?.chainHint ?? report.chain}
+- Lenses: ${report.thesisProfile?.lenses.join(', ') ?? 'none'}
+- Inference confidence: ${report.thesisProfile?.confidence ?? 'low'}
 
 ## Mode
 ${report.mode}

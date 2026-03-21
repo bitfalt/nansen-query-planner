@@ -3,25 +3,38 @@ import { join } from 'node:path'
 import type { PlannerRun, Evidence } from '../types'
 import { runNansenCommand } from '../nansen/command-runner'
 import { buildEvidenceFromCommand } from '../nansen/parse-output'
-import { resolveTokenAddressFromSearch } from '../nansen/resolve-token'
+import { resolveTokenCandidateFromSearch } from '../nansen/resolve-token'
+import { buildThesisProfile } from '../thesis/profile'
 
 function splitCommand(command: string): string[] {
   return command.split(' ').filter(Boolean).slice(1)
 }
 
-function applyResolvedToken(command: string, inputToken: string, resolvedToken: string) {
-  return command.replace(`--token ${inputToken}`, `--token ${resolvedToken}`)
+function applyResolvedSelection(command: string, inputToken: string, inputChain: string, resolvedToken: string, resolvedChain: string) {
+  return command
+    .replace(`--token ${inputToken}`, `--token ${resolvedToken}`)
+    .replace(`--chain ${inputChain}`, `--chain ${resolvedChain}`)
 }
 
 export function executePlan(run: PlannerRun, outputDir: string): PlannerRun {
   mkdirSync(outputDir, { recursive: true })
   const evidence: Evidence[] = []
+  const profile = buildThesisProfile(run.input)
+  const inputToken = run.input.token ?? profile.tokenHint
+  const inputChain = run.input.chain ?? profile.chainHint
   let resolvedTokenRef: string | null = null
+  let resolvedChainRef: string | null = null
 
   for (const step of run.steps) {
     const command =
       resolvedTokenRef && step.id !== 'q1'
-        ? applyResolvedToken(step.command, run.input.token, resolvedTokenRef)
+        ? applyResolvedSelection(
+            step.command,
+            inputToken,
+            inputChain,
+            resolvedTokenRef,
+            resolvedChainRef ?? inputChain,
+          )
         : step.command
 
     const result = runNansenCommand(splitCommand(command))
@@ -29,20 +42,23 @@ export function executePlan(run: PlannerRun, outputDir: string): PlannerRun {
     writeFileSync(outPath, [result.stdout, result.stderr].filter(Boolean).join('\n'))
 
     if (step.id === 'q1' && result.success) {
-      resolvedTokenRef = resolveTokenAddressFromSearch(
+      const selected = resolveTokenCandidateFromSearch(
         result.stdout,
-        run.input.chain,
-        run.input.token,
+        run.input.chain ?? profile.chainHint,
+        run.input.token ?? profile.tokenHint,
       )
+
+      resolvedTokenRef = selected?.address ?? null
+      resolvedChainRef = selected?.chain ?? null
     }
 
     const ev = buildEvidenceFromCommand(step, result, outPath)
     if (resolvedTokenRef && step.id === 'q1') {
-      ev.summary += ` Selected ${run.input.chain} token reference: ${resolvedTokenRef}.`
+      ev.summary += ` Selected ${resolvedChainRef ?? inputChain} token reference: ${resolvedTokenRef}.`
       ev.metrics = {
         ...(ev.metrics || {}),
         resolvedTokenRef,
-        selectedChain: run.input.chain,
+        selectedChain: resolvedChainRef ?? inputChain,
       }
     }
     evidence.push(ev)
