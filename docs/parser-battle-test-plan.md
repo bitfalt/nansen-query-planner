@@ -110,3 +110,12 @@ bun run bin/replay-parser-run.ts \
 ```
 
 That lets you iterate on parsing and verdict logic offline.
+
+## Fixture verification
+Once curated fixture files exist in `fixtures/live-samples`, verify the current parser and thesis-scoring behavior offline with:
+
+```bash
+bun run fixtures:verify
+```
+
+This is the safest way to regression-test parser changes before spending more credits.

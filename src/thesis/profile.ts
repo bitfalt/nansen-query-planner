@@ -43,12 +43,20 @@ export type ThesisLens =
   | 'valuation'
   | 'catalyst'
 
+export type ClaimFocus =
+  | 'accumulation'
+  | 'concentration-risk'
+  | 'crowding-risk'
+  | 'momentum-confirmation'
+  | 'general'
+
 export type ThesisProfile = {
   searchQuery: string
   tokenHint: string
   chainHint: string
   lenses: ThesisLens[]
   claimPolarity: 'positive' | 'negative'
+  claimFocus: ClaimFocus
   confidence: 'low' | 'medium' | 'high'
   reasoning: string[]
 }
@@ -166,6 +174,28 @@ function detectClaimPolarity(thesis: string): ThesisProfile['claimPolarity'] {
   return 'positive'
 }
 
+function detectClaimFocus(thesis: string): ClaimFocus {
+  const lower = thesis.toLowerCase()
+
+  if (/too concentrated|few wallets|holder base|unhealthy/.test(lower)) {
+    return 'concentration-risk'
+  }
+
+  if (/crowded|late longs|trapped|overowned|overbought/.test(lower)) {
+    return 'crowding-risk'
+  }
+
+  if (/price momentum|momentum.*confirm|confirming.*momentum|momentum is finally confirming/.test(lower)) {
+    return 'momentum-confirmation'
+  }
+
+  if (/accumulat|moving into|rotation into|smart money is moving into|smart money is accumulating/.test(lower)) {
+    return 'accumulation'
+  }
+
+  return 'general'
+}
+
 function unique<T>(items: T[]) {
   return [...new Set(items)]
 }
@@ -204,6 +234,7 @@ export function buildThesisProfile(input: ThesisInput): ThesisProfile {
     chainHint,
     lenses: detectLenses(input.thesis),
     claimPolarity: detectClaimPolarity(input.thesis),
+    claimFocus: detectClaimFocus(input.thesis),
     confidence,
     reasoning,
   }

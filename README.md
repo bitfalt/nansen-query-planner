@@ -29,6 +29,7 @@ bun install
 bun run planner:demo
 bun run planner:demo:safe
 bun run planner:demo:expanded
+bun run fixtures:verify
 bun run typecheck
 ```
 

@@ -114,6 +114,7 @@ ${report.token} on ${report.chain}
 - Chain hint: ${report.thesisProfile?.chainHint ?? report.chain}
 - Lenses: ${report.thesisProfile?.lenses.join(', ') ?? 'none'}
 - Claim polarity: ${report.thesisProfile?.claimPolarity ?? 'positive'}
+- Claim focus: ${report.thesisProfile?.claimFocus ?? 'general'}
 - Inference confidence: ${report.thesisProfile?.confidence ?? 'low'}
 
 ## Mode

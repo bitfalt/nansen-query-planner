@@ -9,6 +9,33 @@ function getMetricNumber(evidence: Evidence, key: string) {
 function getStepWeight(stepId: string, profile: ThesisProfile) {
   let weight = 1
 
+  if (profile.claimFocus === 'concentration-risk') {
+    if (stepId === 'q7') weight *= 4
+    if (stepId === 'q9') weight *= 2
+    if (stepId === 'q4' || stepId === 'q5' || stepId === 'q6' || stepId === 'q8' || stepId === 'q10') {
+      weight *= 0.35
+    }
+  }
+
+  if (profile.claimFocus === 'crowding-risk') {
+    if (stepId === 'q9') weight *= 3
+    if (stepId === 'q10' || stepId === 'q4' || stepId === 'q5' || stepId === 'q6' || stepId === 'q8') {
+      weight *= 1.5
+    }
+    if (stepId === 'q7') weight *= 0.5
+  }
+
+  if (profile.claimFocus === 'momentum-confirmation') {
+    if (stepId === 'q10') weight *= 2.5
+    if (stepId === 'q3' || stepId === 'q4' || stepId === 'q5') weight *= 1.5
+    if (stepId === 'q7') weight *= 0.5
+  }
+
+  if (profile.claimFocus === 'accumulation') {
+    if (stepId === 'q4' || stepId === 'q5' || stepId === 'q6' || stepId === 'q8') weight *= 1.5
+    if (stepId === 'q7' || stepId === 'q9') weight *= 0.75
+  }
+
   if (profile.lenses.includes('holders')) {
     if (stepId === 'q7') weight *= 2.5
     if (stepId === 'q8' || stepId === 'q9') weight *= 1.5
@@ -79,32 +106,32 @@ export function buildVerdict(evidence: Evidence[], executed: boolean, profile?: 
     const avgStillHoldingRatio = getMetricNumber(entry, 'avgStillHoldingRatio')
     const priceChangePct = getMetricNumber(entry, 'priceChangePct')
 
-    if (netFlow > 0) bullSignal += 1 * weight
-    if (netFlow < 0) bearSignal += 1 * weight
-    if (latestNetFlow > 0) bullSignal += 0.75 * weight
-    if (latestNetFlow < 0) bearSignal += 0.75 * weight
-    if (aggregateNetFlow > 0) bullSignal += 1 * weight
-    if (aggregateNetFlow < 0) bearSignal += 1 * weight
-    if (inflow > outflow && inflow > 0) bullSignal += 0.75 * weight
-    if (outflow > inflow && outflow > 0) bearSignal += 0.75 * weight
-    if (score >= 60) bullSignal += 0.75 * weight
-    if (score > 0 && score <= 40) bearSignal += 0.75 * weight
-    if (smartMoneyNetFlow > 0) bullSignal += 1 * weight
-    if (smartMoneyNetFlow < 0) bearSignal += 1 * weight
-    if (participantNetFlow > 0) bullSignal += 0.75 * weight
-    if (participantNetFlow < 0) bearSignal += 0.75 * weight
-    if (indicatorNetSignal > 0.75) bullSignal += 0.75 * weight
-    if (indicatorNetSignal < -0.75) bearSignal += 0.75 * weight
-    if (topHolderSharePct >= 20) bearSignal += 0.5 * weight
-    if (topFiveHolderSharePct >= 50) bearSignal += 1 * weight
-    if (profitableRatio >= 0.7 && avgWinRate >= 0.55) bearSignal += 0.5 * weight
-    if (profitableRatio >= 0.7 && avgRoiPct >= 5) bearSignal += 0.5 * weight
-    if (profitableRatio >= 0.7 && avgStillHoldingRatio >= 0.25) bearSignal += 0.5 * weight
-    if (profitableRatio > 0 && profitableRatio <= 0.3 && avgWinRate > 0 && avgWinRate <= 0.45) {
-      bullSignal += 0.5 * weight
+    if (entry.stance === 'neutral') {
+      continue
     }
-    if (priceChangePct >= 3) bullSignal += 0.5 * weight
-    if (priceChangePct <= -3) bearSignal += 0.5 * weight
+
+    const addDirectionalSignal = (amount: number) => {
+      if (entry.stance === 'bull') bullSignal += amount * weight
+      if (entry.stance === 'bear') bearSignal += amount * weight
+    }
+
+    if (netFlow !== 0) addDirectionalSignal(1)
+    if (latestNetFlow !== 0) addDirectionalSignal(0.75)
+    if (aggregateNetFlow !== 0) addDirectionalSignal(1)
+    if ((inflow > outflow && inflow > 0) || (outflow > inflow && outflow > 0)) addDirectionalSignal(0.75)
+    if (score >= 60 || (score > 0 && score <= 40)) addDirectionalSignal(0.75)
+    if (smartMoneyNetFlow !== 0) addDirectionalSignal(1)
+    if (participantNetFlow !== 0) addDirectionalSignal(0.75)
+    if (Math.abs(indicatorNetSignal) > 0.75) addDirectionalSignal(0.75)
+    if (topHolderSharePct >= 20) addDirectionalSignal(0.5)
+    if (topFiveHolderSharePct >= 50) addDirectionalSignal(1)
+    if (profitableRatio >= 0.7 && avgWinRate >= 0.55) addDirectionalSignal(0.5)
+    if (profitableRatio >= 0.7 && avgRoiPct >= 5) addDirectionalSignal(0.5)
+    if (profitableRatio >= 0.7 && avgStillHoldingRatio >= 0.25) addDirectionalSignal(0.5)
+    if (profitableRatio > 0 && profitableRatio <= 0.3 && avgWinRate > 0 && avgWinRate <= 0.45) {
+      addDirectionalSignal(0.5)
+    }
+    if (Math.abs(priceChangePct) >= 3) addDirectionalSignal(0.5)
   }
 
   const delta = bullSignal - bearSignal

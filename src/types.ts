@@ -86,6 +86,12 @@ export type StructuredReport = {
     chainHint: string
     lenses: string[]
     claimPolarity: 'positive' | 'negative'
+    claimFocus:
+      | 'accumulation'
+      | 'concentration-risk'
+      | 'crowding-risk'
+      | 'momentum-confirmation'
+      | 'general'
     confidence: 'low' | 'medium' | 'high'
     reasoning: string[]
   }
