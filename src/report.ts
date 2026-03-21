@@ -26,9 +26,15 @@ function buildCaveats(run: PlannerRun) {
 
 function buildAgentSummary(strongestBullEvidence: Evidence | null, strongestBearEvidence: Evidence | null) {
   return {
-    strongestBullCase: strongestBullEvidence?.summary ?? 'No strong bull-side evidence yet.',
-    strongestBearCase: strongestBearEvidence?.summary ?? 'No strong bear-side evidence yet.',
+    strongestBullCase: strongestBullEvidence?.summary ?? 'No strong thesis-supporting evidence yet.',
+    strongestBearCase: strongestBearEvidence?.summary ?? 'No strong thesis-contradicting evidence yet.',
   }
+}
+
+function renderStanceLabel(stance: Evidence['stance']) {
+  if (stance === 'bull') return 'SUPPORTS'
+  if (stance === 'bear') return 'CONTRADICTS'
+  return 'NEUTRAL'
 }
 
 export function buildStructuredReport(
@@ -42,8 +48,8 @@ export function buildStructuredReport(
     strongestBearCase: string
   }
 } {
-  const verdict = buildVerdict(run.evidence, run.executed)
   const profile = buildThesisProfile(run.input)
+  const verdict = buildVerdict(run.evidence, run.executed, profile)
   const executedQueries = run.evidence.length
   const categories = [...new Set(run.steps.map((s) => s.category))] as string[]
   const estimatedTotalCredits = run.steps.reduce((sum, step) => sum + step.estimatedCostCredits, 0)
@@ -107,6 +113,7 @@ ${report.token} on ${report.chain}
 - Token hint: ${report.thesisProfile?.tokenHint ?? report.token}
 - Chain hint: ${report.thesisProfile?.chainHint ?? report.chain}
 - Lenses: ${report.thesisProfile?.lenses.join(', ') ?? 'none'}
+- Claim polarity: ${report.thesisProfile?.claimPolarity ?? 'positive'}
 - Inference confidence: ${report.thesisProfile?.confidence ?? 'low'}
 
 ## Mode
@@ -119,8 +126,8 @@ ${report.executed ? 'yes' : 'no'}
 - Decision: ${report.verdict.decision}
 - Confidence: ${report.verdict.confidence}
 - Explanation: ${report.verdict.explanation}
-- Bull signal: ${report.verdict.bullSignal}
-- Bear signal: ${report.verdict.bearSignal}
+- Support signal: ${report.verdict.bullSignal}
+- Contradiction signal: ${report.verdict.bearSignal}
 
 ## Planner Summary
 - Total queries: ${report.plannerSummary.totalQueries}
@@ -133,15 +140,15 @@ ${report.executed ? 'yes' : 'no'}
 - Analyst take: ${report.llmSummary.analystTake}
 - Next action: ${report.llmSummary.nextAction}
 
-## Strongest Bull Evidence
+## Strongest Supporting Evidence
 ${report.strongestBullEvidence ? `- ${report.strongestBullEvidence.summary}` : '- None yet'}
 
-## Strongest Bear Evidence
+## Strongest Contradictory Evidence
 ${report.strongestBearEvidence ? `- ${report.strongestBearEvidence.summary}` : '- None yet'}
 
 ## Agent Summary
-- Strongest bull case: ${report.agentSummary.strongestBullCase}
-- Strongest bear case: ${report.agentSummary.strongestBearCase}
+- Strongest supporting case: ${report.agentSummary.strongestBullCase}
+- Strongest contradictory case: ${report.agentSummary.strongestBearCase}
 
 ## Caveats
 ${report.caveats.map((c) => `- ${c}`).join('\n') || '- None'}
@@ -156,7 +163,7 @@ ${report.plannedQueries
   .join('\n')}
 
 ## Evidence Items
-${report.evidence.map((e) => `- [${e.stance.toUpperCase()}|${e.signalStrength}] ${e.summary}`).join('\n') || '- No evidence collected yet'}
+${report.evidence.map((e) => `- [${renderStanceLabel(e.stance)}|${e.signalStrength}] ${e.summary}`).join('\n') || '- No evidence collected yet'}
 
 ## Query Trace
 ${report.queryTrace.map((q) => `- ${q}`).join('\n')}

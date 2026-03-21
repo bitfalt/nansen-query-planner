@@ -48,6 +48,7 @@ export type ThesisProfile = {
   tokenHint: string
   chainHint: string
   lenses: ThesisLens[]
+  claimPolarity: 'positive' | 'negative'
   confidence: 'low' | 'medium' | 'high'
   reasoning: string[]
 }
@@ -128,6 +129,43 @@ function detectLenses(thesis: string): ThesisLens[] {
   return [...lenses]
 }
 
+function detectClaimPolarity(thesis: string): ThesisProfile['claimPolarity'] {
+  const lower = thesis.toLowerCase()
+  const negativePatterns = [
+    /too concentrated/,
+    /unhealthy/,
+    /crowded/,
+    /trapped/,
+    /distribution/,
+    /selling pressure/,
+    /weakening/,
+    /exhausted/,
+    /late longs/,
+    /overvalued/,
+  ]
+  const positivePatterns = [
+    /accumulat/,
+    /moving into/,
+    /rotation into/,
+    /bullish/,
+    /confirming/,
+    /healthy/,
+    /undervalued/,
+    /support/,
+    /smart money is moving into/,
+  ]
+
+  if (negativePatterns.some((pattern) => pattern.test(lower))) {
+    return 'negative'
+  }
+
+  if (positivePatterns.some((pattern) => pattern.test(lower))) {
+    return 'positive'
+  }
+
+  return 'positive'
+}
+
 function unique<T>(items: T[]) {
   return [...new Set(items)]
 }
@@ -165,6 +203,7 @@ export function buildThesisProfile(input: ThesisInput): ThesisProfile {
     tokenHint,
     chainHint,
     lenses: detectLenses(input.thesis),
+    claimPolarity: detectClaimPolarity(input.thesis),
     confidence,
     reasoning,
   }

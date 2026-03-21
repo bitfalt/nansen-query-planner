@@ -5,6 +5,7 @@ import { runNansenCommand } from '../nansen/command-runner'
 import { buildEvidenceFromCommand } from '../nansen/parse-output'
 import { resolveTokenCandidateFromSearch } from '../nansen/resolve-token'
 import { buildThesisProfile } from '../thesis/profile'
+import { alignEvidenceToThesis } from '../thesis/interpret-evidence'
 
 function splitCommand(command: string): string[] {
   return command.split(' ').filter(Boolean).slice(1)
@@ -52,7 +53,7 @@ export function executePlan(run: PlannerRun, outputDir: string): PlannerRun {
       resolvedChainRef = selected?.chain ?? null
     }
 
-    const ev = buildEvidenceFromCommand(step, result, outPath)
+    const ev = alignEvidenceToThesis(step, buildEvidenceFromCommand(step, result, outPath), profile)
     if (resolvedTokenRef && step.id === 'q1') {
       ev.summary += ` Selected ${resolvedChainRef ?? inputChain} token reference: ${resolvedTokenRef}.`
       ev.metrics = {

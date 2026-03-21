@@ -38,7 +38,7 @@ export type Evidence = {
 }
 
 export type Verdict = {
-  decision: 'BULLISH' | 'BEARISH' | 'MIXED' | 'INCONCLUSIVE'
+  decision: 'SUPPORTED' | 'CONTRADICTED' | 'MIXED' | 'INCONCLUSIVE'
   confidence: 'low' | 'medium' | 'high'
   bullEvidenceCount: number
   bearEvidenceCount: number
@@ -85,6 +85,7 @@ export type StructuredReport = {
     tokenHint: string
     chainHint: string
     lenses: string[]
+    claimPolarity: 'positive' | 'negative'
     confidence: 'low' | 'medium' | 'high'
     reasoning: string[]
   }
